@@ -38,3 +38,4 @@ export {
   resumeClient,
   resumeServer,
 } from "./resume.js";
+export { type DispatchHandlers, runDispatcher } from "./dispatcher.js";
