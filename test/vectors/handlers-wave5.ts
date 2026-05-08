@@ -25,6 +25,7 @@ import { verify as ed25519Verify } from "../../src/keys/index.js";
 import {
   type AEADAlgorithm,
   aeadOpen,
+  aeadSeal,
   argon2idKDF,
   computeMAC,
   hybridPrivateKeyFromKyberAndX25519,
@@ -103,6 +104,18 @@ export function handleAccountRecovery(entry: VectorEntry): void {
     prefix: "SEMP-RECOVERY-BUNDLE:",
   });
   expect(ok).toBe(getBool(entry.expected, "signature_verifies"));
+
+  // Compose-side: AEAD-Seal the canonical payload with K_bundle +
+  // pinned nonce + empty AAD; assert encrypted_payload matches.
+  const wantPlaintextCanonical = canonicalMarshal(wantPlaintextRaw);
+  const composedCT = aeadSeal(
+    "xchacha20-poly1305",
+    bundleKey,
+    nonce,
+    wantPlaintextCanonical,
+    new Uint8Array(0),
+  );
+  expect(bytesEqual(composedCT, ct), "compose encrypted_payload").toBe(true);
 }
 
 function canonicalize(v: unknown): string {
@@ -239,6 +252,12 @@ function handleLargeAttachmentValid(entry: VectorEntry): void {
     const expect_hash = `sha256:${encodeHex(sha256(wantCT))}`;
     expect(final.ciphertext_hash).toBe(expect_hash);
   }
+
+  // Compose-side cross-check: AEAD-Seal the plaintext with the
+  // derived K_attachment, pinned nonce, and recomputed AAD; assert
+  // the bytes match ciphertext_at_url_hex byte-for-byte.
+  const composed = aeadSeal(algo, kAttachment, nonce, plaintext, aad);
+  expect(bytesEqual(composed, wantCT), `${entry.id}: compose ciphertext`).toBe(true);
 }
 
 function handleLargeAttachmentTamperedMeta(entry: VectorEntry): void {
@@ -465,6 +484,18 @@ function runEnvelopeRoundtrip(
   );
   expect(getBool(entry.expected, "round_trip_recovers_brief")).toBe(true);
 
+  // Compose-side: AEAD-Seal the canonical brief with K_brief +
+  // pinned nonce + postmark.id AAD; assert the wire bytes match.
+  const briefPlaintextCanonical = canonicalMarshal(wantBrief);
+  const briefComposedCT = aeadSeal(
+    aead,
+    kBrief,
+    briefNonce,
+    briefPlaintextCanonical,
+    new TextEncoder().encode(postmarkID),
+  );
+  expect(bytesEqual(briefComposedCT, briefCT), "compose brief ciphertext").toBe(true);
+
   // Step 4: enclosure AEAD round-trip.
   const enclRecipients = seal.enclosure_recipients;
   if (!isRecord(enclRecipients) || typeof enclRecipients[clientFP] !== "string") {
@@ -483,6 +514,21 @@ function runEnvelopeRoundtrip(
   expect(bytesEqual(enclNonceFromWire, enclNonce)).toBe(true);
   const enclPT = aeadOpen(aead, kEncl, enclNonce, enclCT, new TextEncoder().encode(postmarkID));
   expect(getBool(entry.expected, "round_trip_recovers_enclosure")).toBe(true);
+
+  // Compose-side: AEAD-Seal the canonical enclosure with K_encl +
+  // pinned nonce + postmark.id AAD; assert the wire bytes match.
+  // The enclosure plaintext we encrypt is the decrypted-and-then-
+  // re-canonicalized JSON; re-canonicalizing already-canonical bytes
+  // is a no-op, so this round-trips cleanly.
+  const enclosureCanonical = canonicalMarshal(JSON.parse(new TextDecoder().decode(enclPT)));
+  const enclComposedCT = aeadSeal(
+    aead,
+    kEncl,
+    enclNonce,
+    enclosureCanonical,
+    new TextEncoder().encode(postmarkID),
+  );
+  expect(bytesEqual(enclComposedCT, enclCT), "compose enclosure ciphertext").toBe(true);
 
   // Step 5: sender_signature on the decrypted enclosure.
   const enclosure = JSON.parse(new TextDecoder().decode(enclPT)) as unknown;

@@ -17,7 +17,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 
 import { canonicalEnvelopeBytes } from "../../src/envelope/index.js";
 import { marshal as canonicalMarshal } from "../../src/canonical/index.js";
-import { verify as ed25519Verify } from "../../src/keys/index.js";
+import { signSignedDoc, verify as ed25519Verify } from "../../src/keys/index.js";
 import {
   type VectorEntry,
   bytesEqual,
@@ -53,6 +53,21 @@ export function handleSenderSignature(entry: VectorEntry): void {
         prefix: "SEMP-ENCLOSURE-SENDER:",
       });
       expect(ok, "Ed25519 verify").toBe(true);
+      // Compose-side: re-sign with the pinned seed and assert the
+      // signature matches.
+      const preSign = entry.inputs.enclosure_pre_sign_json;
+      if (isRecord(preSign)) {
+        const composed = signSignedDoc({
+          preSignJSON: preSign,
+          seed: decodeHex(getString(entry.inputs, "identity_private_seed_hex")),
+          signaturePath: "sender_signature.value",
+          prefix: "SEMP-ENCLOSURE-SENDER:",
+        });
+        const pinned = entry.expected.signature_b64;
+        if (typeof pinned === "string") {
+          expect(composed.signatureB64, "compose").toBe(pinned);
+        }
+      }
       break;
     }
     case "sender-signature-tampered-body": {
@@ -154,6 +169,21 @@ function handleDeliveryReceiptValid(entry: VectorEntry): void {
       throw new Error("signed receipt missing envelope_hash");
     }
     expect(envHashObj.value, "envelope_hash.value").toBe(wantHash);
+  }
+
+  // Compose-side: re-sign with the pinned seed.
+  const preSign = entry.inputs.receipt_pre_sign_json;
+  if (isRecord(preSign)) {
+    const composed = signSignedDoc({
+      preSignJSON: preSign,
+      seed: decodeHex(getString(entry.inputs, "recipient_domain_seed_hex")),
+      signaturePath: "signature.value",
+      prefix: "SEMP-DELIVERY-RECEIPT:",
+    });
+    const pinned = entry.expected.signature_b64;
+    if (typeof pinned === "string") {
+      expect(composed.signatureB64, "compose receipt signature").toBe(pinned);
+    }
   }
 }
 
@@ -479,6 +509,21 @@ function handleSTHSigned(entry: VectorEntry): void {
     prefix: "SEMP-TRANSPARENCY-STH:",
   });
   expect(ok).toBe(true);
+
+  // Compose-side cross-check.
+  const preSign = entry.inputs.sth_pre_sign_json;
+  if (isRecord(preSign)) {
+    const composed = signSignedDoc({
+      preSignJSON: preSign,
+      seed: decodeHex(getString(entry.inputs, "domain_seed_hex")),
+      signaturePath: "signature.value",
+      prefix: "SEMP-TRANSPARENCY-STH:",
+    });
+    const pinned = entry.expected.signature_b64;
+    if (typeof pinned === "string") {
+      expect(composed.signatureB64, "compose STH signature").toBe(pinned);
+    }
+  }
 }
 
 function handleInclusionProof(entry: VectorEntry): void {
