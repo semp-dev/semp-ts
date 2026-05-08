@@ -10,6 +10,7 @@
  * @module
  */
 
+export * as brief from "./brief/index.js";
 export * as canonical from "./canonical/index.js";
 export * as clockskew from "./clockskew/index.js";
 export * as crypto from "./crypto/index.js";
