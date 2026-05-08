@@ -24,6 +24,7 @@ export * as handshake from "./handshake/index.js";
 export * as keys from "./keys/index.js";
 export * as largeattachment from "./largeattachment/index.js";
 export * as migration from "./migration/index.js";
+export * as recovery from "./recovery/index.js";
 export * as seal from "./seal/index.js";
 export * as session from "./session/index.js";
 export * as transparency from "./transparency/index.js";
