@@ -24,6 +24,7 @@ export * as keys from "./keys/index.js";
 export * as migration from "./migration/index.js";
 export * as seal from "./seal/index.js";
 export * as session from "./session/index.js";
+export * as transparency from "./transparency/index.js";
 export * as transport from "./transport/index.js";
 
 export {
