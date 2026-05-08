@@ -19,5 +19,8 @@ export {
 export {
   type SignSignedDocResult,
   type SignSignedDocSpec,
+  type VerifySignedDocResult,
+  type VerifySignedDocSpec,
   signSignedDoc,
+  verifySignedDoc,
 } from "./signed.js";

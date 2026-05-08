@@ -13,6 +13,7 @@
 export * as canonical from "./canonical/index.js";
 export * as clockskew from "./clockskew/index.js";
 export * as crypto from "./crypto/index.js";
+export * as delivery from "./delivery/index.js";
 export * as discovery from "./discovery/index.js";
 export * as enclosure from "./enclosure/index.js";
 export * as envelope from "./envelope/index.js";
