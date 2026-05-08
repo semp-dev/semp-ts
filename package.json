@@ -50,6 +50,10 @@
       "types": "./dist/seal/index.d.ts",
       "import": "./dist/seal/index.js"
     },
+    "./transport": {
+      "types": "./dist/transport/index.d.ts",
+      "import": "./dist/transport/index.js"
+    },
     "./reasoncodes": {
       "types": "./dist/reasoncodes.d.ts",
       "import": "./dist/reasoncodes.js"
