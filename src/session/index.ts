@@ -8,4 +8,24 @@
  * @module
  */
 
-export { type Role, type SessionConfig, Session } from "./session.js";
+export {
+  type RekeyApply,
+  type Role,
+  type SessionConfig,
+  Session,
+} from "./session.js";
+export {
+  type SealedRekey,
+  openRekeyMessage,
+  sealRekeyMessage,
+} from "./rekey_seal.js";
+export {
+  type RekeyAccepted,
+  type RekeyClientOptions,
+  type RekeyInit,
+  type RekeyRejected,
+  type RekeyServerOptions,
+  RekeyRejectedError,
+  rekeyClient,
+  rekeyServer,
+} from "./rekey.js";

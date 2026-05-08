@@ -31,6 +31,14 @@ import type { Transport } from "../transport/index.js";
 /** Session role: "client" if the local end ran runClient. */
 export type Role = "client" | "server";
 
+/** New keys + new session id installed by a successful rekey. */
+export interface RekeyApply {
+  /** Replacement session_id from RekeyAccepted. */
+  newSessionId: string;
+  /** Newly derived session keys per SESSION.md §3.3. */
+  newKeys: SessionKeys;
+}
+
 /** Configuration to construct a Session from a completed handshake. */
 export interface SessionConfig {
   role: Role;
@@ -59,7 +67,11 @@ export interface SessionConfig {
  */
 export class Session {
   readonly role: Role;
-  readonly sessionId: string;
+  /**
+   * Current session_id. Mutable: a successful rekey installs a new
+   * id atomically with the new keys (see {@link applyRekey}).
+   */
+  sessionId: string;
   readonly sessionTTL: number;
   readonly establishedAt: Date;
   readonly permissions: ReadonlySet<string>;
@@ -162,6 +174,33 @@ export class Session {
     } catch {
       // already closing
     }
+  }
+
+  /**
+   * Atomically install new session keys + a new session_id from a
+   * successful rekey. Zeroizes the prior keys before swapping. The
+   * session retains its TTL boundary (TTL counts from the original
+   * establishedAt) — rekey rolls forward the keys, not the lifetime.
+   */
+  applyRekey(apply: RekeyApply): void {
+    if (this._keys === null) {
+      throw new Error("session: applyRekey after erase");
+    }
+    if (this._closed) {
+      throw new Error("session: applyRekey on closed session");
+    }
+    // Zeroize previous keys before dropping the reference.
+    const prev = this._keys;
+    zero(prev.encC2S);
+    zero(prev.encS2C);
+    zero(prev.macC2S);
+    zero(prev.macS2C);
+    zero(prev.envMAC);
+    if (prev.resumption !== undefined) {
+      zero(prev.resumption);
+    }
+    this._keys = apply.newKeys;
+    this.sessionId = apply.newSessionId;
   }
 
   /**
