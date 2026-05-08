@@ -46,6 +46,10 @@
       "types": "./dist/keys/index.d.ts",
       "import": "./dist/keys/index.js"
     },
+    "./seal": {
+      "types": "./dist/seal/index.d.ts",
+      "import": "./dist/seal/index.js"
+    },
     "./reasoncodes": {
       "types": "./dist/reasoncodes.d.ts",
       "import": "./dist/reasoncodes.js"

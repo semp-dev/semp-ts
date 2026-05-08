@@ -86,6 +86,13 @@ import {
   handleTransparency,
 } from "./handlers-wave4.js";
 
+import {
+  handleAccountRecovery,
+  handleEnvelopeRoundtrip,
+  handleLargeAttachment,
+  handleSealRoundtrip,
+} from "./handlers-wave5.js";
+
 type Handler = (entry: VectorEntry) => void;
 
 /**
@@ -133,6 +140,12 @@ const dispatch: Record<string, Handler> = {
   forwarding: handleForwarding,
   migration: handleMigration,
   transparency: handleTransparency,
+
+  // Wave 5: AEAD + KEM + KDF round-trips.
+  "account-recovery": handleAccountRecovery,
+  "large-attachment": handleLargeAttachment,
+  "seal-roundtrip": handleSealRoundtrip,
+  "envelope-roundtrip": handleEnvelopeRoundtrip,
 };
 
 // Suppress unused warnings until later waves reach for these.

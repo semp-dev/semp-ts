@@ -18,6 +18,7 @@ export * as envelope from "./envelope/index.js";
 export * as extensions from "./extensions/index.js";
 export * as handshake from "./handshake/index.js";
 export * as keys from "./keys/index.js";
+export * as seal from "./seal/index.js";
 
 export {
   type ReasonCode,

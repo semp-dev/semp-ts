@@ -25,3 +25,26 @@ export {
 } from "./kdf.js";
 
 export { computeMAC, verifyMAC } from "./mac.js";
+
+export { type AEADAlgorithm, aeadOpen, aeadSeal } from "./aead.js";
+
+export { argon2idKDF } from "./argon2.js";
+
+export {
+  HybridCiphertextSize,
+  HybridPrivateKeySize,
+  HybridPublicKeySize,
+  HybridSharedSecretSize,
+  Kyber768CiphertextSize,
+  Kyber768PrivateKeySize,
+  Kyber768PublicKeySize,
+  Kyber768SharedKeySize,
+  X25519Size,
+  hybridDecapsulate,
+  hybridPrivateKeyFromKyberAndX25519,
+  kyber768Decapsulate,
+  kyber768EncapsulateDeterministic,
+  kyber768KeyPairFromSeed,
+  x25519Agree,
+  x25519PublicKey,
+} from "./kem.js";
