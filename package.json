@@ -42,6 +42,10 @@
       "types": "./dist/extensions/index.d.ts",
       "import": "./dist/extensions/index.js"
     },
+    "./keys": {
+      "types": "./dist/keys/index.d.ts",
+      "import": "./dist/keys/index.js"
+    },
     "./reasoncodes": {
       "types": "./dist/reasoncodes.d.ts",
       "import": "./dist/reasoncodes.js"

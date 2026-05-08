@@ -66,6 +66,18 @@ import {
   handleSessionLifecycle,
 } from "./handlers-layer2.js";
 
+import {
+  handleAccountClosure,
+  handleConfigurationUpdate,
+  handleDiscoverySigned,
+  handleFirstContactToken,
+  handleHandshakeMessages,
+  handleHandshakeMessagesPQ,
+  handleRecoveryShamir,
+  handleSessionResumption,
+  handleUserPolicy,
+} from "./handlers-signed.js";
+
 type Handler = (entry: VectorEntry) => void;
 
 /**
@@ -94,6 +106,18 @@ const dispatch: Record<string, Handler> = {
   "recipient-status": handleRecipientStatus,
   "negative-envelope-rejection": handleNegativeEnvelopeRejection,
   "must-reject-index": handleMustRejectIndex,
+
+  // Wave 3: single-signature documents + canonical-only handshake +
+  // first-contact + Shamir + resumption KDF.
+  "account-closure": handleAccountClosure,
+  "configuration-update": handleConfigurationUpdate,
+  "user-policy": handleUserPolicy,
+  "discovery-signed": handleDiscoverySigned,
+  "handshake-messages": handleHandshakeMessages,
+  "handshake-messages-pq": handleHandshakeMessagesPQ,
+  "session-resumption": handleSessionResumption,
+  "recovery-shamir": handleRecoveryShamir,
+  "first-contact-token": handleFirstContactToken,
 };
 
 // Suppress unused warnings until later waves reach for these.
