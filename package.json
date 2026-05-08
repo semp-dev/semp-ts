@@ -34,6 +34,10 @@
       "types": "./dist/discovery/index.d.ts",
       "import": "./dist/discovery/index.js"
     },
+    "./enclosure": {
+      "types": "./dist/enclosure/index.d.ts",
+      "import": "./dist/enclosure/index.js"
+    },
     "./envelope": {
       "types": "./dist/envelope/index.d.ts",
       "import": "./dist/envelope/index.js"
@@ -45,6 +49,10 @@
     "./keys": {
       "types": "./dist/keys/index.d.ts",
       "import": "./dist/keys/index.js"
+    },
+    "./migration": {
+      "types": "./dist/migration/index.d.ts",
+      "import": "./dist/migration/index.js"
     },
     "./seal": {
       "types": "./dist/seal/index.d.ts",
