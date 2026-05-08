@@ -1,11 +1,10 @@
 /**
  * Delivery layer per DELIVERY.md.
  *
- * Today: signed delivery receipts (§1.1.1) plus the per-attempt
- * acknowledgment envelope (§1.1.1.5 / §1.6) — the wire shape a
- * recipient server returns inline, including recipient-status
- * visibility resolution (§1.6.4). Future slices: retry queue (§2),
- * block list (§5), full delivery pipeline (§3).
+ * Signed delivery receipts (§1.1.1), per-attempt acknowledgment
+ * envelope (§1.1.1.5 / §1.6) including recipient-status visibility
+ * (§1.6.4), retry-schedule primitives (§2.3), queue state record
+ * (§2.5), and the per-user block list (§4) with match precedence.
  *
  * @module
  */
@@ -51,3 +50,41 @@ export {
   matchVisibility,
   validateRecipientStatus,
 } from "./ack.js";
+
+export {
+  type EffectiveRetryConfig,
+  type RetryConfig,
+  DefaultMaxRetryHorizonMs,
+  MaxRetryHorizonCapMs,
+  MaxRetryIntervalMs,
+  MinJitterFloorMs,
+  MinRetryAttempts,
+  MinRetryInitialIntervalMs,
+  MinRetryJitterFraction,
+  MinRetryMultiplier,
+  baseIntervalMs,
+  effectiveDeadline,
+  isRecoverableReason,
+  jitterIntervalMs,
+  nextAttemptAt,
+  sanitizeRetry,
+} from "./retry.js";
+
+export {
+  type QueueRecordState,
+  type QueueState,
+  isTerminalState,
+  setTerminal,
+} from "./queue.js";
+
+export {
+  type BlockEntry,
+  type BlockList,
+  type BlockListLookup,
+  type BlockListSender,
+  type BlocklistEntity,
+  type BlocklistEntityType,
+  type BlocklistScope,
+  StaticBlockListLookup,
+  matchBlockList,
+} from "./blocklist.js";
