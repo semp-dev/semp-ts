@@ -78,6 +78,14 @@ import {
   handleUserPolicy,
 } from "./handlers-signed.js";
 
+import {
+  handleDeliveryReceipt,
+  handleForwarding,
+  handleMigration,
+  handleSenderSignature,
+  handleTransparency,
+} from "./handlers-wave4.js";
+
 type Handler = (entry: VectorEntry) => void;
 
 /**
@@ -118,6 +126,13 @@ const dispatch: Record<string, Handler> = {
   "session-resumption": handleSessionResumption,
   "recovery-shamir": handleRecoveryShamir,
   "first-contact-token": handleFirstContactToken,
+
+  // Wave 4: verify-only chains + Merkle math.
+  "sender-signature": handleSenderSignature,
+  "delivery-receipt": handleDeliveryReceipt,
+  forwarding: handleForwarding,
+  migration: handleMigration,
+  transparency: handleTransparency,
 };
 
 // Suppress unused warnings until later waves reach for these.
