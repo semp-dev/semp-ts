@@ -14,6 +14,15 @@ export {
   MaxPoWDifficulty,
 } from "./pow.js";
 export {
+  FirstContactBindingHashSize,
+  FirstContactBindingTag,
+  FirstContactFieldSep,
+  FirstContactPrefixRandBytes,
+  computeFirstContactPrefix,
+  decodeFirstContactPrefix,
+  verifyFirstContactBinding,
+} from "./first_contact.js";
+export {
   type ClientConfig,
   type ClientSession,
   HandshakeRejectedError,
