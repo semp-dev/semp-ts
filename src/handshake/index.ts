@@ -1,0 +1,15 @@
+/**
+ * Handshake-layer primitives: PoW verification, confirmation hash,
+ * and (in later waves) the canonical message bytes for init,
+ * response, confirm, accepted, rejected.
+ *
+ * @module
+ */
+
+export { confirmationHash } from "./confirm.js";
+export {
+  verifyChallengeSolution,
+  firstContactDigest,
+  leadingZeroBits,
+  MaxPoWDifficulty,
+} from "./pow.js";
