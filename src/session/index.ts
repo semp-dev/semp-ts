@@ -29,3 +29,12 @@ export {
   rekeyClient,
   rekeyServer,
 } from "./rekey.js";
+export {
+  type ResumeAccepted,
+  type ResumeClientConfig,
+  type ResumeRequest,
+  type ResumeServerConfig,
+  type TicketLookupResult,
+  resumeClient,
+  resumeServer,
+} from "./resume.js";
