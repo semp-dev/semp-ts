@@ -14,6 +14,12 @@ export {
   MaxPoWDifficulty,
 } from "./pow.js";
 export {
+  type ClientConfig,
+  type ClientSession,
+  HandshakeRejectedError,
+  runClient,
+} from "./driver.js";
+export {
   type AcceptedMessage,
   type BuildAcceptedInput,
   type BuildConfirmInput,
