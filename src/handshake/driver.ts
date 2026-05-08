@@ -39,6 +39,7 @@ import {
   x25519PublicKey,
 } from "../crypto/index.js";
 import { fingerprint, verify as ed25519Verify } from "../keys/index.js";
+import { Session } from "../session/index.js";
 import type { Transport } from "../transport/index.js";
 
 import { confirmationHash } from "./confirm.js";
@@ -81,7 +82,11 @@ export interface ClientConfig {
   clientNonce?: Uint8Array;
 }
 
-/** Outcome of a successful handshake. */
+/**
+ * Outcome of a successful handshake. The lower-level driver returns
+ * the bare ClientSession structure; {@link runClient} wraps it in
+ * a {@link Session} object that owns the transport.
+ */
 export interface ClientSession {
   sessionId: string;
   sessionTTL: number;
@@ -112,23 +117,38 @@ export class HandshakeRejectedError extends Error {
 
 /**
  * Drive a handshake to completion over `transport`. Resolves with a
- * `ClientSession` carrying derived keys and server-published session
- * parameters; rejects with `HandshakeRejectedError` on a server
+ * {@link Session} that owns `transport` and the derived session
+ * keys; rejects with {@link HandshakeRejectedError} on a server
  * REJECTED, or a generic Error on protocol violation.
  *
  * On error the transport is closed so the peer's pending `receive`
- * unblocks. Successful completion leaves the transport open for the
- * higher-layer session machine to use.
+ * unblocks. Successful completion leaves the transport owned by
+ * the returned Session — closing the Session closes the transport.
  */
 export async function runClient(
   transport: Transport,
   config: ClientConfig,
-): Promise<ClientSession> {
+): Promise<Session> {
   if (config.suite !== "x25519-chacha20-poly1305") {
     throw new Error(`handshake: v1 driver only supports baseline suite, got ${config.suite}`);
   }
   try {
-    return await runClientInner(transport, config);
+    const result = await runClientInner(transport, config);
+    return new Session({
+      role: "client",
+      sessionId: result.sessionId,
+      sessionTTL: result.sessionTTL,
+      establishedAt: new Date(),
+      permissions: result.permissions,
+      keys: result.keys,
+      transport,
+      ...(result.resumptionTicket !== undefined
+        ? { resumptionTicket: result.resumptionTicket }
+        : {}),
+      serverIdentityProofKeyId: result.serverIdentityProofKeyId,
+      serverIdentityProofSignature: result.serverIdentityProofSignature,
+      extensions: result.extensions,
+    });
   } catch (err) {
     try {
       await transport.close();

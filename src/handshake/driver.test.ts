@@ -161,7 +161,7 @@ describe("handshake.runClient", () => {
     const serverSeed = randomBytes(32);
     const serverDomainPub = publicKeyFromSeed(serverSeed);
 
-    const [clientSession, serverKeys] = await Promise.all([
+    const [session, serverKeys] = await Promise.all([
       runClient(client, {
         suite: "x25519-chacha20-poly1305",
         capabilities: {
@@ -174,25 +174,31 @@ describe("handshake.runClient", () => {
       fakeServer(server, serverSeed),
     ]);
 
-    expect(clientSession.sessionId).toBe("01J7TESTSESSIONID0000000000");
-    expect(clientSession.sessionTTL).toBe(300);
-    expect(clientSession.permissions).toEqual(["send", "receive"]);
+    expect(session.sessionId).toBe("01J7TESTSESSIONID0000000000");
+    expect(session.sessionTTL).toBe(300);
+    expect([...session.permissions]).toEqual(["send", "receive"]);
+    expect(session.role).toBe("client");
+    expect(session.closed).toBe(false);
 
     // The two sides MUST derive identical session keys.
-    expect(encodeBase64(clientSession.keys.encC2S)).toBe(encodeBase64(serverKeys.encC2S));
-    expect(encodeBase64(clientSession.keys.encS2C)).toBe(encodeBase64(serverKeys.encS2C));
-    expect(encodeBase64(clientSession.keys.macC2S)).toBe(encodeBase64(serverKeys.macC2S));
-    expect(encodeBase64(clientSession.keys.macS2C)).toBe(encodeBase64(serverKeys.macS2C));
-    expect(encodeBase64(clientSession.keys.envMAC)).toBe(encodeBase64(serverKeys.envMAC));
+    expect(encodeBase64(session.keys.encC2S)).toBe(encodeBase64(serverKeys.encC2S));
+    expect(encodeBase64(session.keys.encS2C)).toBe(encodeBase64(serverKeys.encS2C));
+    expect(encodeBase64(session.keys.macC2S)).toBe(encodeBase64(serverKeys.macC2S));
+    expect(encodeBase64(session.keys.macS2C)).toBe(encodeBase64(serverKeys.macS2C));
+    expect(encodeBase64(session.keys.envMAC)).toBe(encodeBase64(serverKeys.envMAC));
 
     // Sanity: the derived envMAC actually authenticates a sample
     // message symmetrically. Both sides compute the same MAC.
     const sample = new TextEncoder().encode("sample envelope canonical bytes");
-    const clientMAC = computeMAC(clientSession.keys.envMAC, sample);
+    const clientMAC = computeMAC(session.keys.envMAC, sample);
     const serverMAC = computeMAC(serverKeys.envMAC, sample);
     expect(encodeBase64(clientMAC)).toBe(encodeBase64(serverMAC));
 
-    await Promise.all([client.close(), server.close()]);
+    await session.erase();
+    expect(session.closed).toBe(true);
+    expect(() => session.keys).toThrow(/erased/);
+
+    await server.close();
   });
 
   test("server REJECTED at response surfaces as HandshakeRejectedError", async () => {
