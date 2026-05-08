@@ -5,4 +5,11 @@
  * @module
  */
 
-export { type Suite, WrapInfo, unwrap } from "./wrap.js";
+export {
+  type Suite,
+  type WrapRandomness,
+  WrapInfo,
+  unwrap,
+  wrap,
+  wrapWithRandomness,
+} from "./wrap.js";

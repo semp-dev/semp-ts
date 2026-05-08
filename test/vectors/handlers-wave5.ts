@@ -32,7 +32,7 @@ import {
   newHKDFSHA512,
 } from "../../src/crypto/index.js";
 import { canonicalEnvelopeBytes } from "../../src/envelope/index.js";
-import { unwrap as sealUnwrap } from "../../src/seal/index.js";
+import { unwrap as sealUnwrap, wrapWithRandomness } from "../../src/seal/index.js";
 import {
   type VectorEntry,
   bytesEqual,
@@ -335,6 +335,35 @@ export function handleSealRoundtrip(entry: VectorEntry): void {
   const got = sealUnwrap(suiteStr, priv, pub, wrappedB64);
   expect(bytesEqual(got, wantK), `${entry.id}: unwrap recovered K`).toBe(true);
   expect(getBool(entry.expected, "round_trip_recovers_K")).toBe(true);
+
+  // Send-side cross-check: compose with the pinned ephemeral inputs
+  // and assert the bytes match wrapped_b64 byte-for-byte. This is
+  // the gating interop check on the wrap construction — both
+  // directions of seal must match across implementations.
+  switch (suiteStr) {
+    case "x25519-chacha20-poly1305": {
+      const ephPriv = decodeHex(getString(entry.inputs, "ephemeral_private_key_hex"));
+      const reproduced = wrapWithRandomness(suiteStr, pub, wantK, {
+        ephemeralX25519Priv: ephPriv,
+      });
+      expect(reproduced, `${entry.id}: deterministic wrap`).toBe(wrappedB64);
+      break;
+    }
+    case "pq-kyber768-x25519": {
+      // PQ vector pins ephemeral_x25519_private_key_hex (the X25519
+      // half) and kyber_encaps_randomness_m_hex (the Kyber `m`).
+      const ephPQPriv = decodeHex(
+        getString(entry.inputs, "ephemeral_x25519_private_key_hex"),
+      );
+      const m = decodeHex(getString(entry.inputs, "kyber_encaps_randomness_m_hex"));
+      const reproduced = wrapWithRandomness(suiteStr, pub, wantK, {
+        ephemeralX25519Priv: ephPQPriv,
+        kyberEncapsRandomnessM: m,
+      });
+      expect(reproduced, `${entry.id}: deterministic PQ wrap`).toBe(wrappedB64);
+      break;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
