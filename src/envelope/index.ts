@@ -12,3 +12,14 @@ export {
   MinEnvelopeSizeBucket,
   DefaultMaxEnvelopeSize,
 } from "./buckets.js";
+export {
+  type ComposeInput,
+  type Envelope,
+  type OpenedEnvelope,
+  type OpenInput,
+  type PostmarkFields,
+  type RecipientKey,
+  canonicalEnvelopeFor,
+  compose,
+  openForRecipient,
+} from "./compose.js";
