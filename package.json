@@ -21,6 +21,30 @@
     "./handshake": {
       "types": "./dist/handshake/index.d.ts",
       "import": "./dist/handshake/index.js"
+    },
+    "./canonical": {
+      "types": "./dist/canonical/index.d.ts",
+      "import": "./dist/canonical/index.js"
+    },
+    "./clockskew": {
+      "types": "./dist/clockskew/index.d.ts",
+      "import": "./dist/clockskew/index.js"
+    },
+    "./discovery": {
+      "types": "./dist/discovery/index.d.ts",
+      "import": "./dist/discovery/index.js"
+    },
+    "./envelope": {
+      "types": "./dist/envelope/index.d.ts",
+      "import": "./dist/envelope/index.js"
+    },
+    "./extensions": {
+      "types": "./dist/extensions/index.d.ts",
+      "import": "./dist/extensions/index.js"
+    },
+    "./reasoncodes": {
+      "types": "./dist/reasoncodes.d.ts",
+      "import": "./dist/reasoncodes.js"
     }
   },
   "files": [

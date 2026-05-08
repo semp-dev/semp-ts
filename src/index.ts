@@ -10,5 +10,17 @@
  * @module
  */
 
+export * as canonical from "./canonical/index.js";
+export * as clockskew from "./clockskew/index.js";
 export * as crypto from "./crypto/index.js";
+export * as discovery from "./discovery/index.js";
+export * as envelope from "./envelope/index.js";
+export * as extensions from "./extensions/index.js";
 export * as handshake from "./handshake/index.js";
+
+export {
+  type ReasonCode,
+  KnownReasonCodes,
+  isKnownReasonCode,
+  isRecoverable,
+} from "./reasoncodes.js";

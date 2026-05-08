@@ -49,6 +49,23 @@ import {
   verifyChallengeSolution,
 } from "../../src/handshake/index.js";
 
+import {
+  handleClockTolerance,
+  handleDecisionTable,
+  handleDeliveryStatus,
+  handleDeviceCertificates,
+  handleDiscovery,
+  handleEnvelopeBuckets,
+  handleEnvelopeCanonical,
+  handleExtensionEntries,
+  handleKeyRevocation,
+  handleMustRejectIndex,
+  handleNegativeEnvelopeRejection,
+  handleRecipientStatus,
+  handleRejectionCodes,
+  handleSessionLifecycle,
+} from "./handlers-layer2.js";
+
 type Handler = (entry: VectorEntry) => void;
 
 /**
@@ -57,11 +74,30 @@ type Handler = (entry: VectorEntry) => void;
  * coverage gap is visible.
  */
 const dispatch: Record<string, Handler> = {
+  // Layer 1 (cryptographic primitives).
   hkdf: handleHKDF,
   "session-mac": handleSessionMAC,
   "confirmation-hash": handleConfirmationHash,
   pow: handlePoW,
+
+  // Layer 2 (deterministic protocol logic).
+  "envelope-canonical": handleEnvelopeCanonical,
+  "envelope-buckets": handleEnvelopeBuckets,
+  discovery: handleDiscovery,
+  "rejection-codes": handleRejectionCodes,
+  "extension-entries": handleExtensionEntries,
+  "clock-tolerance": handleClockTolerance,
+  "session-lifecycle": handleSessionLifecycle,
+  "delivery-status": handleDeliveryStatus,
+  "device-certificates": handleDeviceCertificates,
+  "key-revocation": handleKeyRevocation,
+  "recipient-status": handleRecipientStatus,
+  "negative-envelope-rejection": handleNegativeEnvelopeRejection,
+  "must-reject-index": handleMustRejectIndex,
 };
+
+// Suppress unused warnings until later waves reach for these.
+void handleDecisionTable;
 
 const dir = findVectorsDir();
 
