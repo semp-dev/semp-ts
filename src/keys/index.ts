@@ -15,3 +15,9 @@ export {
   sign,
   verify,
 } from "./sign.js";
+
+export {
+  type SignSignedDocResult,
+  type SignSignedDocSpec,
+  signSignedDoc,
+} from "./signed.js";

@@ -20,7 +20,7 @@ import { expect } from "vitest";
 
 import { marshal as canonicalMarshal } from "../../src/canonical/index.js";
 import { confirmationHash, firstContactDigest } from "../../src/handshake/index.js";
-import { verify as ed25519Verify } from "../../src/keys/index.js";
+import { signSignedDoc, verify as ed25519Verify } from "../../src/keys/index.js";
 import {
   type VectorEntry,
   bytesEqual,
@@ -188,9 +188,60 @@ function canonicalIntermediateMatches(entry: VectorEntry, blanked: Uint8Array): 
   }
 }
 
+/**
+ * Try to find a pinned ed25519 seed for the signer in `inputs`.
+ * Returns undefined if none of the candidate fields are present —
+ * the caller skips the compose-side cross-check in that case.
+ */
+function seedFromInputs(entry: VectorEntry, candidates: string[]): Uint8Array | undefined {
+  if (!isRecord(entry.inputs)) {
+    return undefined;
+  }
+  for (const name of candidates) {
+    const hex = entry.inputs[name];
+    if (typeof hex === "string") {
+      return decodeHex(hex);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Find the pre-sign JSON in `inputs.<one of the candidates>`. Used
+ * for the compose-side cross-check: sign the pre-sign object with
+ * the same key the vector pinned, assert the result matches the
+ * vector's `expected.<signed_*_json>`.
+ */
+function preSignDocFromInputs(entry: VectorEntry): Record<string, unknown> | undefined {
+  if (!isRecord(entry.inputs)) {
+    return undefined;
+  }
+  const candidates = [
+    "request_pre_sign_json",
+    "update_pre_sign_json",
+    "record_pre_sign_json",
+    "response_pre_sign_json",
+    "message_pre_sign_json",
+    "manifest_pre_sign_json",
+    "doc_pre_sign_json",
+    "receipt_pre_sign_json",
+    "bundle_pre_sign_json",
+    "enclosure_pre_sign_json",
+    "sth_pre_sign_json",
+  ];
+  for (const k of candidates) {
+    const v = entry.inputs[k];
+    if (isRecord(v)) {
+      return v;
+    }
+  }
+  return undefined;
+}
+
 /** Build a picker-bound handler from a static signature-path + prefix. */
 function singleSignedDocHandler(
   pubKeyFields: string[],
+  seedFields: string[],
   signaturePath: string,
   prefix: string,
 ): (entry: VectorEntry) => void {
@@ -205,7 +256,43 @@ function singleSignedDocHandler(
     });
     canonicalIntermediateMatches(entry, canonicalBlanked);
     expect(ok, `${entry.id}: Ed25519 verify (${entry.spec_reference})`).toBe(true);
+
+    // Compose-side cross-check: sign the pre-sign document with the
+    // pinned seed and assert the result matches the published
+    // signed document byte-for-byte. Skipped if the vector does
+    // not pin a seed (some vectors only carry the signed output).
+    const seed = seedFromInputs(entry, seedFields);
+    const preSign = preSignDocFromInputs(entry);
+    if (seed === undefined || preSign === undefined) {
+      return;
+    }
+    const composed = signSignedDoc({
+      preSignJSON: preSign,
+      seed,
+      signaturePath,
+      prefix,
+    });
+    // Cross-check the canonical-blanked bytes match what verify
+    // computed (both directions should agree on the canonical form).
+    expect(
+      new TextDecoder().decode(composed.canonicalBlanked),
+      `${entry.id}: compose canonical bytes`,
+    ).toBe(new TextDecoder().decode(canonicalBlanked));
+    // The signature_b64 field on the published doc, if pinned, must
+    // match what we composed.
+    const pinnedSigB64 = pinnedSignatureB64(entry);
+    if (pinnedSigB64 !== undefined) {
+      expect(composed.signatureB64, `${entry.id}: compose signature`).toBe(pinnedSigB64);
+    }
   };
+}
+
+function pinnedSignatureB64(entry: VectorEntry): string | undefined {
+  if (!isRecord(entry.expected)) {
+    return undefined;
+  }
+  const v = entry.expected.signature_b64;
+  return typeof v === "string" ? v : undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -213,24 +300,28 @@ function singleSignedDocHandler(
 
 export const handleAccountClosure = singleSignedDocHandler(
   ["primary_device_pub_hex"],
+  ["primary_device_seed_hex"],
   "signature.value",
   "SEMP-ACCOUNT-CLOSURE:",
 );
 
 export const handleConfigurationUpdate = singleSignedDocHandler(
   ["domain_pub_hex"],
+  ["domain_seed_hex"],
   "signature.value",
   "SEMP-CONFIGURATION-UPDATE:",
 );
 
 export const handleUserPolicy = singleSignedDocHandler(
   ["user_identity_pub_hex", "device_pub_hex"],
+  ["user_identity_seed_hex", "device_seed_hex"],
   "signature.value",
   "SEMP-USER-POLICY:",
 );
 
 export const handleDiscoverySigned = singleSignedDocHandler(
   ["domain_pub_hex"],
+  ["domain_seed_hex"],
   "signature.value",
   "SEMP-DISCOVERY:",
 );
@@ -283,6 +374,30 @@ function handleHandshakeSigned(entry: VectorEntry): void {
   });
   canonicalIntermediateMatches(entry, canonicalBlanked);
   expect(ok).toBe(true);
+
+  // Compose-side cross-check.
+  const seed = seedFromInputs(entry, ["server_domain_seed_hex"]);
+  const preSign = preSignDocFromInputs(entry);
+  if (seed !== undefined && preSign !== undefined) {
+    const composed = signSignedDoc({
+      preSignJSON: preSign,
+      seed,
+      signaturePath: "server_signature",
+      prefix: "SEMP-HANDSHAKE:",
+    });
+    const pinned = pinnedSig(entry, "server_signature_b64");
+    if (pinned !== undefined) {
+      expect(composed.signatureB64, `${entry.id}: compose server_signature`).toBe(pinned);
+    }
+  }
+}
+
+function pinnedSig(entry: VectorEntry, field: string): string | undefined {
+  if (!isRecord(entry.expected)) {
+    return undefined;
+  }
+  const v = entry.expected[field];
+  return typeof v === "string" ? v : undefined;
 }
 
 function verifyCanonicalOnly(entry: VectorEntry, inputField: string): void {
@@ -377,6 +492,21 @@ export function handleRecoveryShamir(entry: VectorEntry): void {
       });
       canonicalIntermediateMatches(entry, canonicalBlanked);
       expect(ok).toBe(true);
+      // Compose-side: re-sign and cross-check.
+      const seed = seedFromInputs(entry, ["user_seed_hex"]);
+      const preSign = preSignDocFromInputs(entry);
+      if (seed !== undefined && preSign !== undefined) {
+        const composed = signSignedDoc({
+          preSignJSON: preSign,
+          seed,
+          signaturePath: "signature.value",
+          prefix: "SEMP-RECOVERY-MANIFEST:",
+        });
+        const sigPinned = pinnedSig(entry, "signature_b64");
+        if (sigPinned !== undefined) {
+          expect(composed.signatureB64).toBe(sigPinned);
+        }
+      }
       break;
     }
     case "shamir-share-record-signed":
