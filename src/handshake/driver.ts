@@ -43,6 +43,7 @@ import { Session } from "../session/index.js";
 import type { Transport } from "../transport/index.js";
 
 import { confirmationHash } from "./confirm.js";
+import { composeIdentityProof } from "./identity.js";
 import {
   type AcceptedMessage,
   type Capabilities,
@@ -80,6 +81,30 @@ export interface ClientConfig {
    * bytes of fresh entropy.
    */
   clientNonce?: Uint8Array;
+  /**
+   * Optional identity-proof material. When supplied, the driver
+   * constructs a proper §2.5.2 block: identity_signature over
+   * SEMP-IDENTITY: || session_id || confirmation_hash, then
+   * AEAD-Seal under K_enc_c2s with AAD = session_id.
+   *
+   * When omitted (the default), the driver leaves identity_proof
+   * empty — the higher-level client wraps runClient with its
+   * own auth supply.
+   */
+  identity?: {
+    clientId: string;
+    /** Full address: user@domain. */
+    clientIdentity: string;
+    /** 32-byte Ed25519 secret seed for the long-term identity key. */
+    longTermSeed: Uint8Array;
+    /** Fingerprint of the long-term public key. */
+    longTermKeyId: string;
+    /**
+     * Optional 12-byte AEAD nonce for deterministic tests. Production
+     * callers omit this and let the driver source fresh entropy.
+     */
+    proofNonce?: Uint8Array;
+  };
 }
 
 /**
@@ -218,14 +243,29 @@ async function runClientInner(
   const respCanonical = canonicalMarshal(resp);
   const confirmHashBytes = confirmationHash(initCanonical, respCanonical);
 
-  // Step 6: CONFIRM.
+  // Step 6: CONFIRM. If `config.identity` is supplied, build the
+  // §2.5.2 encrypted proof block; otherwise leave identity_proof
+  // empty (the spec permits a placeholder for tests that don't
+  // exercise identity verification).
+  let identityProofB64 = "";
+  if (config.identity !== undefined) {
+    identityProofB64 = composeIdentityProof({
+      clientId: config.identity.clientId,
+      clientIdentity: config.identity.clientIdentity,
+      clientLongTermSeed: config.identity.longTermSeed,
+      clientLongTermKeyId: config.identity.longTermKeyId,
+      sessionId: resp.session_id,
+      confirmationHash: confirmHashBytes,
+      encC2S: keys.encC2S,
+      ...(config.identity.proofNonce !== undefined
+        ? { proofNonce: config.identity.proofNonce }
+        : {}),
+    }).identityProofB64;
+  }
   const confirm: ConfirmMessage = buildConfirm({
     sessionId: resp.session_id,
     confirmationHashB64: base64Encode(confirmHashBytes),
-    // The v1 driver leaves identity_proof empty. A higher-level
-    // client wraps this driver and supplies a real proof —
-    // typically AEAD(K_enc_c2s, identity_block) per §2.5.3.
-    identityProofB64: "",
+    identityProofB64,
   });
   await transport.send(canonicalMarshal(confirm));
 

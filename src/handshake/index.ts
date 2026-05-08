@@ -25,6 +25,14 @@ export {
   runServer,
 } from "./server.js";
 export {
+  type ComposeIdentityProofInput,
+  type IdentityProofBlock,
+  type OpenIdentityProofInput,
+  IdentityPrefix,
+  composeIdentityProof,
+  openIdentityProof,
+} from "./identity.js";
+export {
   type AcceptedMessage,
   type BuildAcceptedInput,
   type BuildConfirmInput,
