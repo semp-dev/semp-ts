@@ -20,6 +20,11 @@ export {
   runClient,
 } from "./driver.js";
 export {
+  type IdentityProofVerdict,
+  type ServerConfig,
+  runServer,
+} from "./server.js";
+export {
   type AcceptedMessage,
   type BuildAcceptedInput,
   type BuildConfirmInput,
