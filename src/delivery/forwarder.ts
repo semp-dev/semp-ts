@@ -18,10 +18,21 @@
  *   4. Returns the peer's parsed {@link SubmissionResponse}.
  *
  * The original sender's domain proof of provenance does NOT need
- * to be preserved separately — in the SEMP architecture the
+ * to be preserved separately; in the SEMP architecture the
  * sender's home server and the federation initiator are the SAME
  * server, so re-signing with the local domain key is functionally
  * identical to "the sender's domain signed this envelope".
+ *
+ * The forwarder is protocol-pure: the two pluggable inputs it
+ * requires ({@link EndpointResolver} and {@link PeerDomainKeyLookup})
+ * cover everything the spec defines for federation peer addressing.
+ * Peer endpoint URLs come from `endpointResolver`, which the
+ * operator can wire to a discovery-driven lookup
+ * (DISCOVERY.md §5.1) or a static peer map. Peer signing keys
+ * come from `peerDomainKey`, which the operator can wire to a
+ * pre-loaded map (loaded at startup) or to a KEY.md fetcher
+ * ({@link "../discovery".fetchDomainKeys}). Neither shape is
+ * privileged; both satisfy the spec.
  *
  * @module
  */
@@ -47,38 +58,30 @@ import type { SubmissionResponse } from "./submission.js";
 /** Domain-separation prefix for the seal signature, per §4.3. */
 const EnvelopePrefix = "SEMP-ENVELOPE:";
 
-/** Per-peer routing information. */
-export interface PeerConfig {
-  /** Peer's domain (e.g. `"b.example"`). */
-  domain: string;
-  /**
-   * Federation endpoint URL (e.g. `"ws://127.0.0.1:18082/v1/federate"`).
-   * The forwarder passes this verbatim to {@link Dialer}.
-   */
-  endpoint: string;
-  /**
-   * Peer's long-term Ed25519 signing public key. Used by the
-   * federation Initiator to verify the peer's response / accepted
-   * messages.
-   */
-  domainSigningPub: Uint8Array;
-}
+/**
+ * Returns the federation endpoint URL the {@link Forwarder} should
+ * dial for `peerDomain`. Implementations cover the full range of
+ * peer-endpoint sourcing: a discovery-driven lookup over DNS SRV
+ * plus the well-known URI per DISCOVERY.md §5.1, a static map for
+ * operators that pre-pin known peers, or a hybrid that consults the
+ * static map first and falls back to discovery.
+ *
+ * Throwing blocks the federation handshake. The {@link Forwarder}
+ * surfaces the error to whoever asked for the forward.
+ */
+export type EndpointResolver = (peerDomain: string) => Promise<string>;
 
-/** Domain → {@link PeerConfig} map. */
-export class PeerRegistry {
-  private readonly peers = new Map<string, PeerConfig>();
-
-  put(cfg: PeerConfig): void {
-    if (cfg.domain === "") {
-      throw new Error("delivery: PeerConfig missing domain");
-    }
-    this.peers.set(cfg.domain, { ...cfg });
-  }
-
-  lookup(domain: string): PeerConfig | null {
-    return this.peers.get(domain) ?? null;
-  }
-}
+/**
+ * Returns the long-term Ed25519 signing public key for a peer
+ * domain. Operators populate this from a startup-time map, from a
+ * KEY.md fetcher
+ * ({@link "../discovery".fetchDomainKeys}), or from a hybrid.
+ *
+ * Throwing blocks the federation handshake; the
+ * {@link Forwarder} surfaces the error to whoever asked for the
+ * forward.
+ */
+export type PeerDomainKeyLookup = (peerDomain: string) => Promise<Uint8Array>;
 
 /** Opens a transport to a peer's federation endpoint. */
 export type Dialer = (endpoint: string) => Promise<Transport>;
@@ -91,8 +94,25 @@ export interface ForwarderConfig {
   localServerID: string;
   /** Local 32-byte Ed25519 secret seed. */
   localDomainSeed: Uint8Array;
-  /** Static peer registry. */
-  peers: PeerRegistry;
+  /**
+   * Resolves a peer domain to a federation endpoint URL. Required.
+   *
+   * For pre-pinned static peers, supply a function that looks the
+   * domain up in an in-memory map. For discovery-driven lookups,
+   * compose a custom resolver around
+   * {@link "../discovery".fetchConfiguration} or
+   * {@link "../discovery".resolveServer}.
+   */
+  endpointResolver: EndpointResolver;
+  /**
+   * Resolves a peer domain to its long-term signing public key.
+   * Required.
+   *
+   * For pre-pinned static peers, supply a function that looks the
+   * domain up in an in-memory map. For lazy KEY.md fetch, compose a
+   * resolver around {@link "../discovery".fetchDomainKeys}.
+   */
+  peerDomainKey: PeerDomainKeyLookup;
   /** Transport dialer. */
   dial: Dialer;
   /**
@@ -142,22 +162,19 @@ export class Forwarder {
    * `K_env_mac` and ship `env` across the cached session for
    * `peerDomain`. Returns the peer's parsed submission response.
    *
-   * Opens a federation session lazily on first call per peer.
+   * Opens a federation session lazily on first call per peer. The
+   * peer endpoint is resolved through `cfg.endpointResolver`; the
+   * peer signing key is resolved through `cfg.peerDomainKey`. Both
+   * lookups happen before the dial, so an unknown peer fails fast.
    */
   async forward(
     peerDomain: string,
     env: Envelope,
   ): Promise<SubmissionResponse> {
-    const cfg = this.cfg.peers.lookup(peerDomain);
-    if (cfg === null) {
-      throw new Error(`delivery: forwarder: unknown peer ${peerDomain}`);
-    }
-    const fs = await this.getSession(cfg);
+    const fs = await this.getSession(peerDomain);
     try {
       return await this.forwardOnSession(fs, env);
     } catch (err) {
-      // Drop the session on transport-layer failure; next call
-      // re-handshakes.
       this.dropSession(peerDomain);
       throw err;
     }
@@ -183,26 +200,37 @@ export class Forwarder {
 
   // ---------------------------------------------------------------------------
 
-  private async getSession(cfg: PeerConfig): Promise<CachedSession> {
-    const cached = this.sessions.get(cfg.domain);
+  private async getSession(peerDomain: string): Promise<CachedSession> {
+    const cached = this.sessions.get(peerDomain);
     if (cached !== undefined) {
       return cached;
     }
-    // Coalesce concurrent connects so we don't open two sessions to
-    // the same peer in parallel.
-    const inflight = this.connecting.get(cfg.domain);
+    const inflight = this.connecting.get(peerDomain);
     if (inflight !== undefined) {
       return inflight;
     }
-    const p = this.openSession(cfg).finally(() => {
-      this.connecting.delete(cfg.domain);
+    const p = this.openSession(peerDomain).finally(() => {
+      this.connecting.delete(peerDomain);
     });
-    this.connecting.set(cfg.domain, p);
+    this.connecting.set(peerDomain, p);
     return p;
   }
 
-  private async openSession(cfg: PeerConfig): Promise<CachedSession> {
-    const transport = await this.cfg.dial(cfg.endpoint);
+  private async openSession(peerDomain: string): Promise<CachedSession> {
+    const endpoint = await this.cfg.endpointResolver(peerDomain);
+    if (endpoint === "") {
+      throw new Error(
+        `delivery: endpointResolver returned empty URL for ${peerDomain}`,
+      );
+    }
+    const peerPub = await this.cfg.peerDomainKey(peerDomain);
+    if (peerPub.length === 0) {
+      throw new Error(
+        `delivery: peerDomainKey returned empty key for ${peerDomain}`,
+      );
+    }
+
+    const transport = await this.cfg.dial(endpoint);
     const initiator = new FederationInitiator({
       suite: "x25519-chacha20-poly1305",
       capabilities: this.cfg.capabilities ?? {
@@ -213,14 +241,14 @@ export class Forwarder {
       localServerID: this.cfg.localServerID,
       localDomainSeed: this.cfg.localDomainSeed,
       peerDomainPubLookup: (d) => {
-        if (d !== cfg.domain) {
+        if (d !== peerDomain) {
           throw new Error(
             `forwarder: peer domain pub lookup for unknown domain ${d}`,
           );
         }
-        return cfg.domainSigningPub;
+        return peerPub;
       },
-      peerDomain: cfg.domain,
+      peerDomain,
       domainProof: { method: "test-trust", data: this.cfg.localDomain },
       ...(this.cfg.policyAcceptor !== undefined
         ? { policyAcceptor: this.cfg.policyAcceptor }
@@ -246,7 +274,7 @@ export class Forwarder {
         session,
         wireMu: { locked: false },
       };
-      this.sessions.set(cfg.domain, fs);
+      this.sessions.set(peerDomain, fs);
       return fs;
     } catch (err) {
       try {
@@ -262,19 +290,13 @@ export class Forwarder {
     fs: CachedSession,
     env: Envelope,
   ): Promise<SubmissionResponse> {
-    // Serialize wire access — JS run-to-completion makes this a soft
-    // latch sufficient for the single-thread model.
     while (fs.wireMu.locked) {
       await new Promise((r) => setTimeout(r, 0));
     }
     fs.wireMu.locked = true;
     try {
-      // Update postmark.session_id so the peer's pipeline matches.
       env.postmark.session_id = fs.session.sessionId;
 
-      // Re-sign with our local domain key + re-MAC under federation
-      // K_env_mac. Both proofs cover the SAME canonical bytes (with
-      // signature + mac blanked).
       env.seal.signature = "";
       env.seal.session_mac = "";
       const canonical = canonicalEnvelopeFor(env);

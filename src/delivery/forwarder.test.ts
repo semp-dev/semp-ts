@@ -26,10 +26,7 @@ import {
 } from "../handshake/index.js";
 import { newMemoryPair, type Transport } from "../transport/index.js";
 
-import {
-  Forwarder,
-  PeerRegistry,
-} from "./forwarder.js";
+import { Forwarder } from "./forwarder.js";
 import {
   type SubmissionResponse,
   newSubmissionResponse,
@@ -53,8 +50,6 @@ function buildFix(): Fix {
   const respSeed = seed(0xb2);
   const respPub = publicKeyFromSeed(respSeed);
 
-  // Build a minimal envelope (the forwarder doesn't actually decrypt
-  // anything; it just re-MACs and ships).
   const senderSigningSeed = seed(0xc3);
   const senderSigningPub = publicKeyFromSeed(senderSigningSeed);
   const senderSigningFp = fingerprint(senderSigningPub);
@@ -137,23 +132,48 @@ async function runFakeResponder(
   const acceptedBytes = responder.onConfirm(confirmBytes);
   await transport.send(acceptedBytes);
 
-  // Now consume the forwarded envelope and reply with the canned
-  // response.
   const envBytes = await transport.receive();
   if (envBytes === null) throw new Error("forwarded envelope not received");
   const json = JSON.stringify(cannedResponse);
   await transport.send(new TextEncoder().encode(json));
 }
 
+/**
+ * Build a static-pin EndpointResolver from a `domain → endpoint` map.
+ * Mirrors what an operator would write to inject a known peer.
+ */
+function staticEndpoints(
+  m: Record<string, string>,
+): (peer: string) => Promise<string> {
+  return async (peer) => {
+    const ep = m[peer];
+    if (ep === undefined) {
+      throw new Error(`forwarder test: no endpoint for ${peer}`);
+    }
+    return ep;
+  };
+}
+
+/**
+ * Build a static-pin PeerDomainKeyLookup from a `domain → publicKey`
+ * map. Mirrors what an operator would write when peer keys are
+ * pre-loaded at startup rather than lazily fetched via KEY.md.
+ */
+function staticKeys(
+  m: Record<string, Uint8Array>,
+): (peer: string) => Promise<Uint8Array> {
+  return async (peer) => {
+    const k = m[peer];
+    if (k === undefined) {
+      throw new Error(`forwarder test: no key for ${peer}`);
+    }
+    return k;
+  };
+}
+
 describe("Forwarder", () => {
   test("forward round-trips through a federation handshake", async () => {
     const f = buildFix();
-    const peers = new PeerRegistry();
-    peers.put({
-      domain: "bob.example",
-      endpoint: "memory://bob",
-      domainSigningPub: f.responderPub,
-    });
     const [initSide, respSide] = newMemoryPair();
     const cannedResponse = newSubmissionResponse(
       "01J7TESTENVELOPE000000000000",
@@ -165,7 +185,6 @@ describe("Forwarder", () => {
       ],
       () => new Date("2026-05-08T10:00:00Z"),
     );
-    // Start the fake responder.
     const responderTask = runFakeResponder(
       respSide,
       f.responderSeed,
@@ -177,7 +196,8 @@ describe("Forwarder", () => {
       localDomain: "alice.example",
       localServerID: "01J7ALICE000000000000000000",
       localDomainSeed: f.initiatorSeed,
-      peers,
+      endpointResolver: staticEndpoints({ "bob.example": "memory://bob" }),
+      peerDomainKey: staticKeys({ "bob.example": f.responderPub }),
       dial: async () => initSide,
     });
 
@@ -189,31 +209,42 @@ describe("Forwarder", () => {
     await forwarder.close();
   });
 
-  test("rejects unknown peer", async () => {
+  test("rejects when endpointResolver does not know the peer", async () => {
     const f = buildFix();
-    const peers = new PeerRegistry();
     const forwarder = new Forwarder({
       localDomain: "alice.example",
       localServerID: "01J7ALICE000000000000000000",
       localDomainSeed: f.initiatorSeed,
-      peers,
+      endpointResolver: staticEndpoints({}),
+      peerDomainKey: staticKeys({}),
       dial: async () => {
         throw new Error("dial not used");
       },
     });
     await expect(
       forwarder.forward("nobody.example", f.envelope),
-    ).rejects.toThrow(/unknown peer/);
+    ).rejects.toThrow(/no endpoint for nobody.example/);
+  });
+
+  test("rejects when peerDomainKey does not know the peer", async () => {
+    const f = buildFix();
+    const forwarder = new Forwarder({
+      localDomain: "alice.example",
+      localServerID: "01J7ALICE000000000000000000",
+      localDomainSeed: f.initiatorSeed,
+      endpointResolver: staticEndpoints({ "bob.example": "memory://bob" }),
+      peerDomainKey: staticKeys({}),
+      dial: async () => {
+        throw new Error("dial not used");
+      },
+    });
+    await expect(
+      forwarder.forward("bob.example", f.envelope),
+    ).rejects.toThrow(/no key for bob.example/);
   });
 
   test("close drops cached sessions", async () => {
     const f = buildFix();
-    const peers = new PeerRegistry();
-    peers.put({
-      domain: "bob.example",
-      endpoint: "memory://bob",
-      domainSigningPub: f.responderPub,
-    });
     const [initSide, respSide] = newMemoryPair();
     const cannedResponse = newSubmissionResponse(
       "01J7TESTENVELOPE000000000000",
@@ -229,7 +260,8 @@ describe("Forwarder", () => {
       localDomain: "alice.example",
       localServerID: "01J7ALICE000000000000000000",
       localDomainSeed: f.initiatorSeed,
-      peers,
+      endpointResolver: staticEndpoints({ "bob.example": "memory://bob" }),
+      peerDomainKey: staticKeys({ "bob.example": f.responderPub }),
       dial: async () => initSide,
     });
     await forwarder.forward("bob.example", f.envelope);

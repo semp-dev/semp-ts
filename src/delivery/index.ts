@@ -233,8 +233,8 @@ export {
 
 export {
   type Dialer,
+  type EndpointResolver,
   type ForwarderConfig,
-  type PeerConfig,
+  type PeerDomainKeyLookup,
   Forwarder,
-  PeerRegistry,
 } from "./forwarder.js";
