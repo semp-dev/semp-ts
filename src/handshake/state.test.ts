@@ -9,7 +9,7 @@
 
 import { describe, expect, test } from "vitest";
 
-import { publicKeyFromSeed } from "../keys/index.js";
+import { fingerprint, publicKeyFromSeed } from "../keys/index.js";
 
 import { HandshakeClient } from "./client_state.js";
 import { HandshakeServer } from "./server_state.js";
@@ -135,5 +135,147 @@ describe("HandshakeClient + HandshakeServer", () => {
       serverDomainPub: publicKeyFromSeed(seed(0xa1)),
     });
     expect(() => c.session()).toThrow(/not yet established/);
+  });
+
+  test("server extracts client identity from CONFIRM and exposes it", () => {
+    const serverSeed = seed(0xa1);
+    const serverPub = publicKeyFromSeed(serverSeed);
+    const clientLongTermSeed = seed(0xb2);
+    const clientLongTermPub = publicKeyFromSeed(clientLongTermSeed);
+    const clientLongTermKeyId = fingerprint(clientLongTermPub);
+
+    const client = new HandshakeClient({
+      suite: "x25519-chacha20-poly1305",
+      capabilities: {
+        encryption_algorithms: ["x25519-chacha20-poly1305"],
+        extensions: [],
+      },
+      transport: "memory",
+      serverDomainPub: serverPub,
+      identity: {
+        clientId: "client-state-id",
+        clientIdentity: "alice@test.example",
+        longTermSeed: clientLongTermSeed,
+        longTermKeyId: clientLongTermKeyId,
+      },
+    });
+    let lookupCalls = 0;
+    const server = new HandshakeServer({
+      serverDomainSigningSeed: serverSeed,
+      domain: "test.example",
+      supportedSuites: ["x25519-chacha20-poly1305"],
+      permissions: ["send", "receive"],
+      sessionTTL: 300,
+      generateSessionId: () => "01J7TESTIDENTITY00000000000",
+      identityProofSignature: () => "PLACEHOLDER",
+      lookupClientIdentityKey: (identity, keyId) => {
+        lookupCalls += 1;
+        expect(identity).toBe("alice@test.example");
+        expect(keyId).toBe(clientLongTermKeyId);
+        return clientLongTermPub;
+      },
+    });
+
+    const initBytes = client.init();
+    const respBytes = server.onInit(initBytes);
+    const confirmBytes = client.onResponse(respBytes);
+    const acceptedBytes = server.onConfirm(confirmBytes);
+    client.onAccepted(acceptedBytes);
+
+    expect(server.clientIdentity()).toBe("alice@test.example");
+    expect(server.clientLongTermKeyId()).toBe(clientLongTermKeyId);
+    const ss = server.session();
+    expect(ss.clientIdentity).toBe("alice@test.example");
+    expect(ss.clientLongTermKeyId).toBe(clientLongTermKeyId);
+    expect(lookupCalls).toBe(1);
+  });
+
+  test("server rejects CONFIRM when identity_signature does not verify under the looked-up key", () => {
+    const serverSeed = seed(0xa1);
+    const serverPub = publicKeyFromSeed(serverSeed);
+    // Client signs with one seed; server's lookup returns the WRONG pub.
+    const clientLongTermSeed = seed(0xb2);
+    const clientLongTermPub = publicKeyFromSeed(clientLongTermSeed);
+    const clientLongTermKeyId = fingerprint(clientLongTermPub);
+    const wrongPub = publicKeyFromSeed(seed(0xc3));
+
+    const client = new HandshakeClient({
+      suite: "x25519-chacha20-poly1305",
+      capabilities: {
+        encryption_algorithms: ["x25519-chacha20-poly1305"],
+        extensions: [],
+      },
+      transport: "memory",
+      serverDomainPub: serverPub,
+      identity: {
+        clientId: "client-state-id",
+        clientIdentity: "alice@test.example",
+        longTermSeed: clientLongTermSeed,
+        longTermKeyId: clientLongTermKeyId,
+      },
+    });
+    const server = new HandshakeServer({
+      serverDomainSigningSeed: serverSeed,
+      domain: "test.example",
+      supportedSuites: ["x25519-chacha20-poly1305"],
+      permissions: ["send", "receive"],
+      sessionTTL: 300,
+      generateSessionId: () => "01J7TESTREJECT0000000000000",
+      identityProofSignature: () => "PLACEHOLDER",
+      lookupClientIdentityKey: () => wrongPub,
+    });
+
+    const initBytes = client.init();
+    const respBytes = server.onInit(initBytes);
+    const confirmBytes = client.onResponse(respBytes);
+    expect(() => server.onConfirm(confirmBytes)).toThrow(/auth_failed/);
+    expect(server.clientIdentity()).toBe("");
+    expect(server.clientLongTermKeyId()).toBe("");
+  });
+
+  test("server's verifyIdentityProof callback receives the decrypted block", () => {
+    const serverSeed = seed(0xa1);
+    const serverPub = publicKeyFromSeed(serverSeed);
+    const clientLongTermSeed = seed(0xb2);
+    const clientLongTermPub = publicKeyFromSeed(clientLongTermSeed);
+    const clientLongTermKeyId = fingerprint(clientLongTermPub);
+
+    const client = new HandshakeClient({
+      suite: "x25519-chacha20-poly1305",
+      capabilities: {
+        encryption_algorithms: ["x25519-chacha20-poly1305"],
+        extensions: [],
+      },
+      transport: "memory",
+      serverDomainPub: serverPub,
+      identity: {
+        clientId: "client-state-id",
+        clientIdentity: "bob@test.example",
+        longTermSeed: clientLongTermSeed,
+        longTermKeyId: clientLongTermKeyId,
+      },
+    });
+    let blockSeen: { client_identity: string } | undefined;
+    const server = new HandshakeServer({
+      serverDomainSigningSeed: serverSeed,
+      domain: "test.example",
+      supportedSuites: ["x25519-chacha20-poly1305"],
+      permissions: ["send", "receive"],
+      sessionTTL: 300,
+      generateSessionId: () => "01J7TESTBLOCK00000000000000",
+      identityProofSignature: () => "PLACEHOLDER",
+      verifyIdentityProof: ({ block }) => {
+        blockSeen = block;
+        return { ok: true };
+      },
+    });
+
+    const initBytes = client.init();
+    const respBytes = server.onInit(initBytes);
+    const confirmBytes = client.onResponse(respBytes);
+    server.onConfirm(confirmBytes);
+
+    expect(blockSeen).toBeDefined();
+    expect(blockSeen?.client_identity).toBe("bob@test.example");
   });
 });

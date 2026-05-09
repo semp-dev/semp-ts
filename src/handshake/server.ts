@@ -39,11 +39,16 @@ import {
   x25519Agree,
   x25519PublicKey,
 } from "../crypto/index.js";
-import { fingerprint, publicKeyFromSeed } from "../keys/index.js";
+import { fingerprint, publicKeyFromSeed, verify as ed25519Verify } from "../keys/index.js";
 import { Session } from "../session/index.js";
 import type { Transport } from "../transport/index.js";
 
 import { confirmationHash } from "./confirm.js";
+import {
+  type IdentityProofBlock,
+  IdentityPrefix,
+  openIdentityProof,
+} from "./identity.js";
 import {
   type AcceptedMessage,
   type ConfirmMessage,
@@ -97,11 +102,38 @@ export interface ServerConfig {
    * CONFIRM. If omitted, the v1 driver accepts any non-empty
    * proof (and an empty proof, since the v1 client driver leaves
    * it empty).
+   *
+   * The `block` field is the AEAD-decrypted identity-proof block
+   * when the proof bytes successfully unwrapped under K_enc_c2s.
+   * It is undefined when the wrapped proof is empty or when AEAD
+   * open failed (in which case the driver has already rejected
+   * with `auth_failed` before invoking this callback). Consumers
+   * that already needed to decrypt the proof can read `block`
+   * instead of re-running {@link openIdentityProof}.
    */
   verifyIdentityProof?: (input: {
     identityProofB64: string;
     sessionKeys: SessionKeys;
+    block?: import("./identity.js").IdentityProofBlock;
   }) => IdentityProofVerdict;
+  /**
+   * Optional lookup of the public key for a client's long-term
+   * identity key. When supplied, the driver verifies the
+   * inner identity_signature inside the decrypted identity-proof
+   * block over `SEMP-IDENTITY: || session_id || confirmation_hash`
+   * and rejects with `auth_failed` on signature failure.
+   *
+   * When omitted, the inner signature is not checked. Callers
+   * that want to enforce identity binding without supplying this
+   * lookup can do so themselves inside
+   * {@link verifyIdentityProof}.
+   *
+   * Throw to reject the handshake with the `auth_failed` reason.
+   */
+  lookupClientIdentityKey?: (
+    clientIdentity: string,
+    clientLongTermKeyId: string,
+  ) => Uint8Array;
   /**
    * Permissions to grant on ACCEPTED. v1 driver does no
    * authorization; the caller decides.
@@ -230,11 +262,73 @@ async function runServerInner(
     throw new Error("handshake: confirmation hash mismatch");
   }
 
-  // Step 7: optional identity proof verification.
+  // Step 7: identity proof. Decrypt the AEAD-protected block when it
+  // is non-empty and surface it to the verifier; verify the inner
+  // identity_signature against `lookupClientIdentityKey` when
+  // supplied. The driver rejects with `auth_failed` on AEAD open
+  // failure, on a missing identity key, or on signature failure.
+  let identityBlock: IdentityProofBlock | undefined;
+  if (confirm.identity_proof !== "") {
+    try {
+      identityBlock = openIdentityProof({
+        identityProofB64: confirm.identity_proof,
+        encC2S: keys.encC2S,
+        sessionId,
+      });
+    } catch (err) {
+      await sendRejected(
+        transport,
+        sessionId,
+        "auth_failed",
+        config.serverDomainSigningSeed,
+        err instanceof Error ? err.message : String(err),
+      );
+      throw new Error(
+        `handshake: identity_proof open failed (${err instanceof Error ? err.message : String(err)})`,
+      );
+    }
+    if (config.lookupClientIdentityKey !== undefined) {
+      let clientPub: Uint8Array;
+      try {
+        clientPub = config.lookupClientIdentityKey(
+          identityBlock.client_identity,
+          identityBlock.client_long_term_key_id,
+        );
+      } catch (err) {
+        await sendRejected(
+          transport,
+          sessionId,
+          "auth_failed",
+          config.serverDomainSigningSeed,
+          err instanceof Error ? err.message : String(err),
+        );
+        throw new Error(
+          `handshake: identity key lookup failed (${err instanceof Error ? err.message : String(err)})`,
+        );
+      }
+      const sessionIdBytes = new TextEncoder().encode(sessionId);
+      const signed = concat(
+        new TextEncoder().encode(IdentityPrefix),
+        concat(sessionIdBytes, wantHash),
+      );
+      const sig = base64Decode(identityBlock.identity_signature);
+      if (!ed25519Verify(clientPub, sig, signed)) {
+        await sendRejected(
+          transport,
+          sessionId,
+          "auth_failed",
+          config.serverDomainSigningSeed,
+          "identity_signature did not verify",
+        );
+        throw new Error("handshake: identity_signature did not verify");
+      }
+    }
+  }
   if (config.verifyIdentityProof !== undefined) {
     const verdict = config.verifyIdentityProof({
       identityProofB64: confirm.identity_proof,
       sessionKeys: keys,
+      ...(identityBlock !== undefined ? { block: identityBlock } : {}),
     });
     if (!verdict.ok) {
       await sendRejected(
@@ -348,6 +442,13 @@ function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
 function randomBytes(n: number): Uint8Array {
   const out = new Uint8Array(n);
   globalThis.crypto.getRandomValues(out);
+  return out;
+}
+
+function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
+  const out = new Uint8Array(a.length + b.length);
+  out.set(a, 0);
+  out.set(b, a.length);
   return out;
 }
 

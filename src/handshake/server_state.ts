@@ -36,9 +36,14 @@ import {
   x25519Agree,
   x25519PublicKey,
 } from "../crypto/index.js";
-import { fingerprint, publicKeyFromSeed } from "../keys/index.js";
+import { fingerprint, publicKeyFromSeed, verify as ed25519Verify } from "../keys/index.js";
 
 import { confirmationHash } from "./confirm.js";
+import {
+  type IdentityProofBlock,
+  IdentityPrefix,
+  openIdentityProof,
+} from "./identity.js";
 import {
   type AcceptedMessage,
   type ConfirmMessage,
@@ -70,6 +75,19 @@ export interface HandshakeServerSession {
   serverIdentityProofSignature: string;
   extensions: Record<string, unknown>;
   resumptionTicket?: ResumptionTicket;
+  /**
+   * Authenticated client identity (`user@domain`) extracted from
+   * the decrypted identity_proof block. Empty string when the
+   * client sent an empty identity_proof (compatible with v1
+   * tests that skip identity binding).
+   */
+  clientIdentity: string;
+  /**
+   * Fingerprint of the client's long-term identity key as
+   * declared in the decrypted identity_proof block. Empty
+   * string when the proof was empty.
+   */
+  clientLongTermKeyId: string;
 }
 
 /**
@@ -108,6 +126,12 @@ export class HandshakeServer {
   private sessionKeys: SessionKeys | null = null;
   private serverIdProof: ServerIdentityProof | null = null;
   private finalSession: HandshakeServerSession | null = null;
+
+  // Authenticated client identity. Populated by onConfirm once the
+  // identity_proof block has decrypted (and, when configured, the
+  // inner identity_signature has verified).
+  private clientIdentityValue: string | null = null;
+  private clientLongTermKeyIdValue: string | null = null;
 
   constructor(cfg: HandshakeServerConfig) {
     if (cfg.supportedSuites.length === 0) {
@@ -251,10 +275,73 @@ export class HandshakeServer {
       );
     }
 
+    // Decrypt the identity_proof block (if non-empty) and, when
+    // `lookupClientIdentityKey` is configured, verify the inner
+    // identity_signature over `SEMP-IDENTITY: || session_id ||
+    // confirmation_hash` against the looked-up public key. Reject
+    // with `auth_failed` on AEAD open failure, on lookup failure,
+    // or on signature failure.
+    let identityBlock: IdentityProofBlock | undefined;
+    if (confirm.identity_proof !== "") {
+      try {
+        identityBlock = openIdentityProof({
+          identityProofB64: confirm.identity_proof,
+          encC2S: this.sessionKeys.encC2S,
+          sessionId: this.sessionId,
+        });
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        const rej = buildRejectedSigned(
+          this.sessionId,
+          "auth_failed",
+          reason,
+          this.cfg.serverDomainSigningSeed,
+        );
+        throw new HandshakeServerRejectionError("auth_failed", reason, rej);
+      }
+      if (this.cfg.lookupClientIdentityKey !== undefined) {
+        let clientPub: Uint8Array;
+        try {
+          clientPub = this.cfg.lookupClientIdentityKey(
+            identityBlock.client_identity,
+            identityBlock.client_long_term_key_id,
+          );
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : String(err);
+          const rej = buildRejectedSigned(
+            this.sessionId,
+            "auth_failed",
+            reason,
+            this.cfg.serverDomainSigningSeed,
+          );
+          throw new HandshakeServerRejectionError("auth_failed", reason, rej);
+        }
+        const sessionIdBytes = new TextEncoder().encode(this.sessionId);
+        const signed = concat(
+          new TextEncoder().encode(IdentityPrefix),
+          concat(sessionIdBytes, wantHash),
+        );
+        const sig = base64Decode(identityBlock.identity_signature);
+        if (!ed25519Verify(clientPub, sig, signed)) {
+          const reason = "identity_signature did not verify";
+          const rej = buildRejectedSigned(
+            this.sessionId,
+            "auth_failed",
+            reason,
+            this.cfg.serverDomainSigningSeed,
+          );
+          throw new HandshakeServerRejectionError("auth_failed", reason, rej);
+        }
+      }
+      this.clientIdentityValue = identityBlock.client_identity;
+      this.clientLongTermKeyIdValue = identityBlock.client_long_term_key_id;
+    }
+
     if (this.cfg.verifyIdentityProof !== undefined) {
       const verdict = this.cfg.verifyIdentityProof({
         identityProofB64: confirm.identity_proof,
         sessionKeys: this.sessionKeys,
+        ...(identityBlock !== undefined ? { block: identityBlock } : {}),
       });
       if (!verdict.ok) {
         const code = verdict.reasonCode ?? "auth_failed";
@@ -287,6 +374,8 @@ export class HandshakeServer {
       serverIdentityProofKeyId: this.serverIdProof.key_id,
       serverIdentityProofSignature: this.serverIdProof.signature,
       extensions: this.cfg.acceptedExtensions ?? {},
+      clientIdentity: this.clientIdentityValue ?? "",
+      clientLongTermKeyId: this.clientLongTermKeyIdValue ?? "",
       ...(ticket !== undefined ? { resumptionTicket: ticket } : {}),
     };
     if (this.serverEphPriv !== null) {
@@ -304,6 +393,26 @@ export class HandshakeServer {
       );
     }
     return this.finalSession;
+  }
+
+  /**
+   * Authenticated client identity (e.g. `"alice@example.com"`)
+   * extracted from the decrypted identity_proof block. Returns
+   * the empty string before {@link onConfirm} completes
+   * successfully or when the client sent an empty identity_proof.
+   */
+  clientIdentity(): string {
+    return this.clientIdentityValue ?? "";
+  }
+
+  /**
+   * Fingerprint of the client's long-term identity key as
+   * declared in the decrypted identity_proof block. Returns the
+   * empty string before {@link onConfirm} completes successfully
+   * or when the client sent an empty identity_proof.
+   */
+  clientLongTermKeyId(): string {
+    return this.clientLongTermKeyIdValue ?? "";
   }
 
   /** Wipe in-memory secret state. Idempotent. */
@@ -357,6 +466,13 @@ function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
 function randomBytes(n: number): Uint8Array {
   const out = new Uint8Array(n);
   globalThis.crypto.getRandomValues(out);
+  return out;
+}
+
+function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
+  const out = new Uint8Array(a.length + b.length);
+  out.set(a, 0);
+  out.set(b, a.length);
   return out;
 }
 
