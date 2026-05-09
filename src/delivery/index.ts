@@ -184,3 +184,57 @@ export {
   type PartitionInput,
   partitionStages,
 } from "./stage_partition.js";
+
+export {
+  type PolicyApplyReasonCode,
+  type PolicySnapshot,
+  PolicyApplyError,
+  PolicyState,
+  defaultPolicyKinds,
+} from "./policy_state.js";
+
+export {
+  type DecodedBrief,
+  type DomainKeyLookup,
+  type DomainPolicyFunc,
+  type EnvMACFunc,
+  type InboxStore,
+  type LocalAddressFunc,
+  type PipelineConfig,
+  type PipelineLogger,
+  type PipelineRejection,
+  type PipelineResult,
+  type RecipientPolicyFunc,
+  type SessionRetiredFunc,
+  Pipeline,
+} from "./pipeline.js";
+
+export {
+  type StageCompleteFunc,
+  type StageDeliverFunc,
+  type StageSuppressFunc,
+  type StagedRunnerConfig,
+  EnvelopeAlreadyHeldError,
+  EnvelopeNotHeldError,
+  StagedRunner,
+} from "./staged_runner.js";
+
+export {
+  type AttemptResult,
+  type DeliverFunc,
+  type EventSink,
+  type SchedulerConfig,
+  type SchedulerStore,
+  InMemorySchedulerStore,
+  Scheduler,
+  TickInProgressError,
+  UnknownRecordError,
+} from "./scheduler.js";
+
+export {
+  type Dialer,
+  type ForwarderConfig,
+  type PeerConfig,
+  Forwarder,
+  PeerRegistry,
+} from "./forwarder.js";
