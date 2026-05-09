@@ -101,3 +101,48 @@ export {
   validateRevocationPublication,
   verifyRevocationPublication,
 } from "./key_revocation.js";
+
+export {
+  type KeyRecord,
+  type KeysClientStream,
+  type KeysRequest,
+  type KeysRequestStep,
+  type KeysResponse,
+  type KeysResponseResult,
+  type KeysResultStatus,
+  type KeysSignatureBlock,
+  KeysRequestType,
+  KeysRequestVersion,
+  fetchKeys,
+  newKeysRequest,
+  newKeysResponse,
+  validateKeysRequest,
+} from "./request.js";
+
+export {
+  type CompromiseRotation,
+  type CompromiseRotationInput,
+  buildCompromiseRotation,
+  verifyCompromiseRotation,
+} from "./compromise.js";
+
+export {
+  type CertificateCheck,
+  DirectoryCache,
+  DirectoryRollbackError,
+} from "./directory_cache.js";
+
+export {
+  type DirectoryStateConfig,
+  DirectoryState,
+  DirectoryStore,
+} from "./directory_state.js";
+
+export {
+  type KeyStore,
+  type KeyStoreRecord,
+  type KeyStoreSignature,
+  type KeyType,
+  type PrivateKeyStore,
+  InMemoryKeyStore,
+} from "./store.js";
