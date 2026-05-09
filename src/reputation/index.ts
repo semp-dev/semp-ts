@@ -75,3 +75,22 @@ export {
   difficultyForAssessment,
   issueChallenge,
 } from "./pow.js";
+
+export {
+  type WHOIS,
+  MinDomainAgeMs,
+  meetsMinAge,
+} from "./whois.js";
+
+export {
+  type AbuseReportInput,
+  type UserKeyLookup,
+  newAbuseReport,
+  validateEvidence,
+} from "./abuse_report.js";
+
+export {
+  type FetchTrustObservationsOptions,
+  TrustGossipMaxBytes,
+  fetchTrustObservations,
+} from "./gossip_fetch.js";
