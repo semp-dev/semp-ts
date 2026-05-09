@@ -1,9 +1,27 @@
 {
-  "name": "semp",
-  "version": "0.1.0-dev",
+  "name": "@sempdev/semp",
+  "version": "0.4.3",
   "description": "TypeScript implementation of SEMP (Sealed Envelope Messaging Protocol).",
   "license": "MIT",
   "type": "module",
+  "homepage": "https://github.com/semp-dev/semp-ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/semp-dev/semp-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/semp-dev/semp-ts/issues"
+  },
+  "keywords": [
+    "semp",
+    "messaging",
+    "e2e",
+    "encryption",
+    "federation",
+    "protocol",
+    "sealed-envelope",
+    "post-quantum"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -14,13 +32,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./crypto": {
-      "types": "./dist/crypto/index.d.ts",
-      "import": "./dist/crypto/index.js"
-    },
-    "./handshake": {
-      "types": "./dist/handshake/index.d.ts",
-      "import": "./dist/handshake/index.js"
+    "./brief": {
+      "types": "./dist/brief/index.d.ts",
+      "import": "./dist/brief/index.js"
     },
     "./canonical": {
       "types": "./dist/canonical/index.d.ts",
@@ -29,6 +43,18 @@
     "./clockskew": {
       "types": "./dist/clockskew/index.d.ts",
       "import": "./dist/clockskew/index.js"
+    },
+    "./closure": {
+      "types": "./dist/closure/index.d.ts",
+      "import": "./dist/closure/index.js"
+    },
+    "./crypto": {
+      "types": "./dist/crypto/index.d.ts",
+      "import": "./dist/crypto/index.js"
+    },
+    "./delivery": {
+      "types": "./dist/delivery/index.d.ts",
+      "import": "./dist/delivery/index.js"
     },
     "./discovery": {
       "types": "./dist/discovery/index.d.ts",
@@ -46,13 +72,29 @@
       "types": "./dist/extensions/index.d.ts",
       "import": "./dist/extensions/index.js"
     },
+    "./handshake": {
+      "types": "./dist/handshake/index.d.ts",
+      "import": "./dist/handshake/index.js"
+    },
     "./keys": {
       "types": "./dist/keys/index.d.ts",
       "import": "./dist/keys/index.js"
     },
+    "./largeattachment": {
+      "types": "./dist/largeattachment/index.d.ts",
+      "import": "./dist/largeattachment/index.js"
+    },
     "./migration": {
       "types": "./dist/migration/index.d.ts",
       "import": "./dist/migration/index.js"
+    },
+    "./recovery": {
+      "types": "./dist/recovery/index.d.ts",
+      "import": "./dist/recovery/index.js"
+    },
+    "./reputation": {
+      "types": "./dist/reputation/index.d.ts",
+      "import": "./dist/reputation/index.js"
     },
     "./seal": {
       "types": "./dist/seal/index.d.ts",
@@ -61,6 +103,10 @@
     "./session": {
       "types": "./dist/session/index.d.ts",
       "import": "./dist/session/index.js"
+    },
+    "./transparency": {
+      "types": "./dist/transparency/index.d.ts",
+      "import": "./dist/transparency/index.js"
     },
     "./transport": {
       "types": "./dist/transport/index.d.ts",
@@ -76,12 +122,16 @@
     "README.md",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "clean": "rm -rf dist coverage"
+    "clean": "rm -rf dist coverage",
+    "prepublishOnly": "npm run clean && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@noble/ciphers": "^2.0.0",
