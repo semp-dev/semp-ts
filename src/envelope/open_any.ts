@@ -12,7 +12,8 @@
 import {
   type Envelope,
   type OpenInput,
-  openForRecipient,
+  openBriefForRecipient,
+  openEnclosureForRecipient,
 } from "./compose.js";
 
 /** One candidate recipient identity to try when opening. */
@@ -61,14 +62,14 @@ export function openBriefAny(
       continue; // not a brief recipient
     }
     try {
-      const opened = openForRecipient({
+      const brief = openBriefForRecipient({
         suite,
         envelope: env,
         recipientKeyId: c.keyId,
         recipientPrivateKey: c.privateKey,
         recipientPublicKey: c.publicKey,
       });
-      return { candidate: c, brief: opened.brief };
+      return { candidate: c, brief };
     } catch (err) {
       errors.push(
         `${c.keyId}: ${err instanceof Error ? err.message : String(err)}`,
@@ -105,14 +106,14 @@ export function openEnclosureAny(
       continue; // not an enclosure recipient
     }
     try {
-      const opened = openForRecipient({
+      const enclosure = openEnclosureForRecipient({
         suite,
         envelope: env,
         recipientKeyId: c.keyId,
         recipientPrivateKey: c.privateKey,
         recipientPublicKey: c.publicKey,
       });
-      return { candidate: c, enclosure: opened.enclosure };
+      return { candidate: c, enclosure };
     } catch (err) {
       errors.push(
         `${c.keyId}: ${err instanceof Error ? err.message : String(err)}`,

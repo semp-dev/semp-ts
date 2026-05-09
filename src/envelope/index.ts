@@ -26,6 +26,8 @@ export {
   type RecipientKey,
   canonicalEnvelopeFor,
   compose,
+  openBriefForRecipient,
+  openEnclosureForRecipient,
   openForRecipient,
 } from "./compose.js";
 

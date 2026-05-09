@@ -328,18 +328,37 @@ export interface OpenedEnvelope {
  * {@link verifySessionMAC} are the corresponding verifier helpers.
  */
 export function openForRecipient(input: OpenInput): OpenedEnvelope {
+  const brief = openBriefForRecipient(input);
+  const enclosure = openEnclosureForRecipient(input);
+  return { brief, enclosure };
+}
+
+/**
+ * Open just the brief slot for a specific recipient. Servers (which
+ * sit in `brief_recipients` for routing but NOT in `enclosure_recipients`)
+ * use this; clients that hold both slots use {@link openForRecipient}.
+ *
+ * Throws if the recipient is absent from `brief_recipients` or the
+ * AEAD tag does not verify.
+ */
+export function openBriefForRecipient(input: OpenInput): unknown {
   const aead = suiteBriefEnclosureAEAD(input.suite);
   const env = input.envelope;
   const postmarkID = new TextEncoder().encode(env.postmark.id);
 
-  // Unwrap K_brief.
   const briefWrapped = env.seal.brief_recipients[input.recipientKeyId];
   if (typeof briefWrapped !== "string") {
-    throw new Error(`open: recipient ${input.recipientKeyId} not in brief_recipients`);
+    throw new Error(
+      `open: recipient ${input.recipientKeyId} not in brief_recipients`,
+    );
   }
-  const kBrief = sealUnwrap(input.suite, input.recipientPrivateKey, input.recipientPublicKey, briefWrapped);
+  const kBrief = sealUnwrap(
+    input.suite,
+    input.recipientPrivateKey,
+    input.recipientPublicKey,
+    briefWrapped,
+  );
 
-  // Brief AEAD: blob is base64(nonce || aead_ct), 12-byte nonce.
   const briefBlob = base64Decode(env.brief);
   if (briefBlob.length < 12) {
     throw new Error("open: brief blob too short");
@@ -347,18 +366,32 @@ export function openForRecipient(input: OpenInput): OpenedEnvelope {
   const briefNonce = briefBlob.slice(0, 12);
   const briefCT = briefBlob.slice(12);
   const briefPT = aeadOpen(aead, kBrief, briefNonce, briefCT, postmarkID);
-  const brief: unknown = JSON.parse(new TextDecoder().decode(briefPT));
+  return JSON.parse(new TextDecoder().decode(briefPT));
+}
 
-  // Unwrap K_enclosure.
+/**
+ * Open just the enclosure slot for a specific recipient. Mirror of
+ * {@link openBriefForRecipient}. Throws if the recipient is absent
+ * from `enclosure_recipients` or the AEAD tag does not verify.
+ */
+export function openEnclosureForRecipient(input: OpenInput): unknown {
+  const aead = suiteBriefEnclosureAEAD(input.suite);
+  const env = input.envelope;
+  const postmarkID = new TextEncoder().encode(env.postmark.id);
+
   const enclosureWrapped = env.seal.enclosure_recipients[input.recipientKeyId];
   if (typeof enclosureWrapped !== "string") {
     throw new Error(
       `open: recipient ${input.recipientKeyId} not in enclosure_recipients`,
     );
   }
-  const kEnclosure = sealUnwrap(input.suite, input.recipientPrivateKey, input.recipientPublicKey, enclosureWrapped);
+  const kEnclosure = sealUnwrap(
+    input.suite,
+    input.recipientPrivateKey,
+    input.recipientPublicKey,
+    enclosureWrapped,
+  );
 
-  // Enclosure AEAD: same wire shape.
   const enclBlob = base64Decode(env.enclosure);
   if (enclBlob.length < 12) {
     throw new Error("open: enclosure blob too short");
@@ -366,9 +399,7 @@ export function openForRecipient(input: OpenInput): OpenedEnvelope {
   const enclNonce = enclBlob.slice(0, 12);
   const enclCT = enclBlob.slice(12);
   const enclPT = aeadOpen(aead, kEnclosure, enclNonce, enclCT, postmarkID);
-  const enclosure: unknown = JSON.parse(new TextDecoder().decode(enclPT));
-
-  return { brief, enclosure };
+  return JSON.parse(new TextDecoder().decode(enclPT));
 }
 
 // ---------------------------------------------------------------------------
