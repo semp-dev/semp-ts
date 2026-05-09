@@ -77,3 +77,21 @@ export {
   validateDiscoveryResponse,
   verifyDiscoveryResponse,
 } from "./lookup.js";
+
+export {
+  OnionSuffix,
+  OnionV3LabelLength,
+  isOnionDomain,
+  validateOnionDomain,
+} from "./onion.js";
+
+export {
+  type AlphaRange,
+  type PartitionConfig,
+  type PartitionLookupFunc,
+  type PartitionResolverConfig,
+  type PartitionStrategy,
+  defaultAlphaRanges,
+  parsePartitionTXT,
+  resolvePartition,
+} from "./partition.js";

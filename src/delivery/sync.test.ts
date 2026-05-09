@@ -35,10 +35,12 @@ function emptyMessage(): SyncMessage {
       {
         op: "add",
         entry: {
-          entry_id: "block-1",
+          id: "block-1",
           entity: { type: "user", address: "spam@bad.com" },
+          acknowledgment: "rejected",
           scope: "all",
           created_at: "2026-05-08T10:00:00Z",
+          created_by_device_id: "01JDEV01",
         },
       },
     ],
