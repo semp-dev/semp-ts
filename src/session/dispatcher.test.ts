@@ -45,7 +45,7 @@ function frame(obj: unknown): Uint8Array {
 }
 
 describe("runDispatcher", () => {
-  test("routes envelope, rekey, keys, delivery to their handlers; unknown to onUnknown", async () => {
+  test("routes envelope, rekey, keys, fetch, delivery to their handlers; unknown to onUnknown", async () => {
     const [a, b] = newMemoryPair();
     const session = makeSession(b);
     const seen: Array<{ kind: string; type?: string }> = [];
@@ -60,6 +60,9 @@ describe("runDispatcher", () => {
       onKeys: () => {
         seen.push({ kind: "keys" });
       },
+      onFetch: () => {
+        seen.push({ kind: "fetch" });
+      },
       onDelivery: () => {
         seen.push({ kind: "delivery" });
       },
@@ -71,6 +74,7 @@ describe("runDispatcher", () => {
     await a.send(frame({ type: "SEMP_ENVELOPE" }));
     await a.send(frame({ type: "SEMP_REKEY" }));
     await a.send(frame({ type: "SEMP_KEYS" }));
+    await a.send(frame({ type: "SEMP_FETCH" }));
     await a.send(frame({ type: "SEMP_DELIVERY_ACK" }));
     await a.send(frame({ type: "SEMP_DELIVERY_RECEIPT" }));
     await a.send(frame({ type: "SEMP_FUTURE_TYPE" }));
@@ -82,10 +86,30 @@ describe("runDispatcher", () => {
       { kind: "envelope" },
       { kind: "rekey" },
       { kind: "keys" },
+      { kind: "fetch" },
       { kind: "delivery" },
       { kind: "delivery" },
       { kind: "unknown", type: "SEMP_FUTURE_TYPE" },
     ]);
+  });
+
+  test("SEMP_FETCH falls through to onUnknown when onFetch is not registered", async () => {
+    const [a, b] = newMemoryPair();
+    const session = makeSession(b);
+    const seen: Array<{ kind: string; type?: string }> = [];
+
+    const dispatch = runDispatcher(session, {
+      onUnknown: (type) => {
+        seen.push({ kind: "unknown", type });
+      },
+    });
+
+    await a.send(frame({ type: "SEMP_FETCH" }));
+    await a.close();
+
+    await dispatch;
+
+    expect(seen).toEqual([{ kind: "unknown", type: "SEMP_FETCH" }]);
   });
 
   test("clean EOF resolves the dispatcher; no error", async () => {

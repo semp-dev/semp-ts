@@ -33,6 +33,9 @@ export interface DispatchHandlers {
   /** A SEMP_KEYS request or response. */
   onKeys?: (frame: Uint8Array, parsed: unknown) => Promise<void> | void;
 
+  /** A SEMP_FETCH inbox-pull frame. */
+  onFetch?: (frame: Uint8Array, parsed: unknown) => Promise<void> | void;
+
   /** A SEMP_DISCOVERY response delivered over an in-session channel. */
   onDiscovery?: (frame: Uint8Array, parsed: unknown) => Promise<void> | void;
 
@@ -137,6 +140,12 @@ async function dispatchOne(
     case "SEMP_KEYS":
       if (handlers.onKeys !== undefined) {
         await handlers.onKeys(frame, parsed);
+        return;
+      }
+      break;
+    case "SEMP_FETCH":
+      if (handlers.onFetch !== undefined) {
+        await handlers.onFetch(frame, parsed);
         return;
       }
       break;
