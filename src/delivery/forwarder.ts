@@ -45,6 +45,10 @@ import {
   encodeEnvelope,
 } from "../envelope/index.js";
 import { sign as ed25519Sign } from "../keys/index.js";
+import type {
+  KeysRequest,
+  KeysResponse,
+} from "../keys/index.js";
 import {
   type Capabilities,
   type FederationInitiatorSession,
@@ -174,6 +178,32 @@ export class Forwarder {
     const fs = await this.getSession(peerDomain);
     try {
       return await this.forwardOnSession(fs, env);
+    } catch (err) {
+      this.dropSession(peerDomain);
+      throw err;
+    }
+  }
+
+  /**
+   * Fetch keys from `peerDomain` over the cached federation
+   * session. Mirrors {@link forward} but skips envelope handling
+   * entirely: the request is JSON-encoded, written to the
+   * federation stream, and the peer's JSON response is parsed and
+   * returned verbatim. The caller is responsible for verifying
+   * any signatures on the enclosed key records.
+   *
+   * Opens a federation session lazily on first call per peer. On
+   * a transport-level failure during the round trip, the cached
+   * session is dropped so the next call re-handshakes; protocol
+   * errors above the wire are surfaced without dropping.
+   */
+  async fetchKeys(
+    peerDomain: string,
+    request: KeysRequest,
+  ): Promise<KeysResponse> {
+    const fs = await this.getSession(peerDomain);
+    try {
+      return await this.fetchKeysOnSession(fs, request);
     } catch (err) {
       this.dropSession(peerDomain);
       throw err;
@@ -328,6 +358,37 @@ export class Forwarder {
         throw new Error("forwarder: federation response is not a JSON object");
       }
       return parsed as SubmissionResponse;
+    } finally {
+      fs.wireMu.locked = false;
+    }
+  }
+
+  private async fetchKeysOnSession(
+    fs: CachedSession,
+    request: KeysRequest,
+  ): Promise<KeysResponse> {
+    while (fs.wireMu.locked) {
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    fs.wireMu.locked = true;
+    try {
+      const reqBytes = new TextEncoder().encode(JSON.stringify(request));
+      await fs.transport.send(reqBytes);
+      const respBytes = await fs.transport.receive();
+      if (respBytes === null) {
+        throw new Error(
+          "forwarder: connection closed waiting for SEMP_KEYS response",
+        );
+      }
+      const parsed = JSON.parse(new TextDecoder().decode(respBytes));
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        throw new Error("forwarder: SEMP_KEYS response is not a JSON object");
+      }
+      return parsed as KeysResponse;
     } finally {
       fs.wireMu.locked = false;
     }

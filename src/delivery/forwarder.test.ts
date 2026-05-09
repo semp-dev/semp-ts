@@ -16,7 +16,11 @@ import {
   compose,
 } from "../envelope/index.js";
 import {
+  type KeysRequest,
+  type KeysResponse,
   fingerprint,
+  newKeysRequest,
+  newKeysResponse,
   publicKeyFromSeed,
 } from "../keys/index.js";
 import { x25519PublicKey } from "../crypto/index.js";
@@ -241,6 +245,152 @@ describe("Forwarder", () => {
     await expect(
       forwarder.forward("bob.example", f.envelope),
     ).rejects.toThrow(/no key for bob.example/);
+  });
+
+  test("fetchKeys round-trips through a federation handshake", async () => {
+    const f = buildFix();
+    const [initSide, respSide] = newMemoryPair();
+    const cannedKeysResponse = newKeysResponse(
+      "01J7TESTKEYS0000000000000000",
+      [
+        {
+          address: "bob@bob.example",
+          status: "found",
+          domain: "bob.example",
+          user_keys: [],
+        },
+      ],
+      () => new Date("2026-05-08T10:00:00Z"),
+    );
+    let receivedRequest: KeysRequest | null = null;
+    const responderTask = (async () => {
+      const responder = new FederationResponder({
+        suite: "x25519-chacha20-poly1305",
+        capabilities: {
+          encryption_algorithms: ["x25519-chacha20-poly1305"],
+          extensions: [],
+        },
+        localDomain: "bob.example",
+        localServerID: "01J7BOB00000000000000000000",
+        localDomainSeed: f.responderSeed,
+        peerDomainPubLookup: (d) => {
+          if (d === "alice.example") return f.initiatorPub;
+          throw new Error(`responder: unknown peer ${d}`);
+        },
+        verifier: new TrustingDomainVerifier(),
+        policy: {
+          message_retention: "30d",
+          user_discovery: "allowed",
+          relay_allowed: false,
+        },
+        sessionTTL: 3600,
+        generateSessionId: () => "01J7FEDSESSION00000000000000",
+      });
+      const initBytes = await respSide.receive();
+      if (initBytes === null) throw new Error("init not received");
+      const respBytes = await responder.onInit(initBytes);
+      await respSide.send(respBytes);
+      const confirmBytes = await respSide.receive();
+      if (confirmBytes === null) throw new Error("confirm not received");
+      const acceptedBytes = responder.onConfirm(confirmBytes);
+      await respSide.send(acceptedBytes);
+
+      const reqBytes = await respSide.receive();
+      if (reqBytes === null) throw new Error("keys request not received");
+      receivedRequest = JSON.parse(new TextDecoder().decode(reqBytes)) as KeysRequest;
+      const json = JSON.stringify(cannedKeysResponse);
+      await respSide.send(new TextEncoder().encode(json));
+    })();
+
+    const forwarder = new Forwarder({
+      localDomain: "alice.example",
+      localServerID: "01J7ALICE000000000000000000",
+      localDomainSeed: f.initiatorSeed,
+      endpointResolver: staticEndpoints({ "bob.example": "memory://bob" }),
+      peerDomainKey: staticKeys({ "bob.example": f.responderPub }),
+      dial: async () => initSide,
+    });
+
+    const request = newKeysRequest(
+      "01J7TESTKEYS0000000000000000",
+      ["bob@bob.example"],
+      () => new Date("2026-05-08T10:00:00Z"),
+    );
+    const resp: KeysResponse = await forwarder.fetchKeys("bob.example", request);
+    expect(resp.type).toBe("SEMP_KEYS");
+    expect(resp.step).toBe("response");
+    expect(resp.id).toBe("01J7TESTKEYS0000000000000000");
+    expect(resp.results[0]?.address).toBe("bob@bob.example");
+    expect(resp.results[0]?.status).toBe("found");
+
+    await responderTask;
+    expect(receivedRequest).not.toBeNull();
+    if (receivedRequest !== null) {
+      const got: KeysRequest = receivedRequest;
+      expect(got.type).toBe("SEMP_KEYS");
+      expect(got.step).toBe("request");
+      expect(got.id).toBe("01J7TESTKEYS0000000000000000");
+      expect(got.addresses).toEqual(["bob@bob.example"]);
+    }
+
+    await forwarder.close();
+  });
+
+  test("fetchKeys drops cached session on transport failure", async () => {
+    const f = buildFix();
+    const [initSide, respSide] = newMemoryPair();
+    const responderTask = (async () => {
+      const responder = new FederationResponder({
+        suite: "x25519-chacha20-poly1305",
+        capabilities: {
+          encryption_algorithms: ["x25519-chacha20-poly1305"],
+          extensions: [],
+        },
+        localDomain: "bob.example",
+        localServerID: "01J7BOB00000000000000000000",
+        localDomainSeed: f.responderSeed,
+        peerDomainPubLookup: (d) => {
+          if (d === "alice.example") return f.initiatorPub;
+          throw new Error(`responder: unknown peer ${d}`);
+        },
+        verifier: new TrustingDomainVerifier(),
+        policy: {
+          message_retention: "30d",
+          user_discovery: "allowed",
+          relay_allowed: false,
+        },
+        sessionTTL: 3600,
+        generateSessionId: () => "01J7FEDSESSION00000000000000",
+      });
+      const initBytes = await respSide.receive();
+      if (initBytes === null) throw new Error("init not received");
+      const respBytes = await responder.onInit(initBytes);
+      await respSide.send(respBytes);
+      const confirmBytes = await respSide.receive();
+      if (confirmBytes === null) throw new Error("confirm not received");
+      const acceptedBytes = responder.onConfirm(confirmBytes);
+      await respSide.send(acceptedBytes);
+
+      // Receive the request, then close mid-call so the receive
+      // on the forwarder side returns null.
+      await respSide.receive();
+      await respSide.close();
+    })();
+
+    const forwarder = new Forwarder({
+      localDomain: "alice.example",
+      localServerID: "01J7ALICE000000000000000000",
+      localDomainSeed: f.initiatorSeed,
+      endpointResolver: staticEndpoints({ "bob.example": "memory://bob" }),
+      peerDomainKey: staticKeys({ "bob.example": f.responderPub }),
+      dial: async () => initSide,
+    });
+    const request = newKeysRequest("01J7DROP00000000000000000000", ["bob@bob.example"]);
+    await expect(forwarder.fetchKeys("bob.example", request)).rejects.toThrow(
+      /connection closed/,
+    );
+    expect(forwarder.cachedPeers()).toEqual([]);
+    await responderTask;
   });
 
   test("close drops cached sessions", async () => {
