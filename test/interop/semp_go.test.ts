@@ -145,7 +145,12 @@ function startServer(binPath: string, port: number): ServerHandle {
 const sempGoDir = locateSempGo();
 const goAvailable = haveGo();
 
-const interopRunnable = sempGoDir !== null && goAvailable;
+// Interop currently disabled: cmd/semp-server moved out of the semp-go
+// library after the bloat strip. The interop harness will return when a
+// separate semp-server reference-implementation repo lands.
+// To re-enable, set SEMP_INTEROP=1 in the environment.
+const interopRunnable =
+  process.env.SEMP_INTEROP === "1" && sempGoDir !== null && goAvailable;
 
 describe.skipIf(!interopRunnable)("interop: semp-ts client ↔ semp-go server", () => {
   let workDir: string;

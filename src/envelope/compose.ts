@@ -126,6 +126,8 @@ export interface Envelope {
   };
   brief: string;
   enclosure: string;
+  /** Optional opaque base64-alphabet filler for size-bucket padding (§2.4). */
+  padding?: string;
   extensions?: Record<string, unknown>;
 }
 
