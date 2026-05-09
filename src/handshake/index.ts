@@ -23,6 +23,19 @@ export {
   verifyFirstContactBinding,
 } from "./first_contact.js";
 export {
+  ImplementedSuites,
+  SuitePreferenceOrder,
+  defaultClientCapabilities,
+  defaultServerCapabilities,
+  negotiateCapabilities,
+} from "./capabilities.js";
+export {
+  ChallengeInvalidError,
+  buildClientRejection,
+  isChallengeInvalid,
+  isResumptionFailed,
+} from "./abort.js";
+export {
   type ClientConfig,
   type ClientSession,
   HandshakeRejectedError,
