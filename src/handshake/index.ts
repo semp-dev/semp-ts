@@ -42,6 +42,47 @@ export {
   runClient,
 } from "./driver.js";
 export {
+  type HandshakeClientConfig,
+  type HandshakeClientSession,
+  HandshakeClient,
+} from "./client_state.js";
+export {
+  type HandshakeServerConfig,
+  type HandshakeServerSession,
+  HandshakeServer,
+  HandshakeServerRejectionError,
+} from "./server_state.js";
+export {
+  runClientResume,
+  runClientResumeOrFull,
+} from "./resume_driver.js";
+export {
+  type DomainProof,
+  type DomainProofMethod,
+  type DomainVerificationResult,
+  type DomainVerifier,
+  type FederationAcceptance,
+  type FederationAccepted,
+  type FederationConfirm,
+  type FederationEphemeralKey,
+  type FederationInitiatorConfig,
+  type FederationInitiatorSession,
+  type FederationPolicy,
+  type FederationProof,
+  type FederationResponderConfig,
+  type FederationResponderSession,
+  type FederationResponse,
+  type FederationResume,
+  type PolicyAcceptor,
+  type ServerInit,
+  FederationInitiator,
+  FederationMessageType,
+  FederationResponder,
+  TrustingDomainVerifier,
+  acceptAllPolicies,
+  resolveCollision,
+} from "./federation.js";
+export {
   type IdentityProofVerdict,
   type ServerConfig,
   runServer,
