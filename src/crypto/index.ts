@@ -41,6 +41,8 @@ export {
   Kyber768SharedKeySize,
   X25519Size,
   hybridDecapsulate,
+  hybridEncapsulate,
+  hybridGenerateKeyPair,
   hybridPrivateKeyFromKyberAndX25519,
   kyber768Decapsulate,
   kyber768EncapsulateDeterministic,

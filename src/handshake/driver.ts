@@ -23,9 +23,11 @@
  *      reason_code as a typed error.
  *
  * The PQ suite path is structurally identical; only the KEM is
- * different. The v1 driver supports the baseline suite end to end;
- * PQ requires hooking the hybrid KEM in step 4 and is left as a
- * straightforward extension.
+ * different. Both the baseline X25519 suite and the hybrid
+ * Kyber768 + X25519 PQ suite are supported end to end. On the PQ
+ * path step 1 generates a hybrid keypair, step 4 decapsulates the
+ * server's hybrid KEM ciphertext to recover the same combined
+ * shared secret the responder produced.
  *
  * @module
  */
@@ -33,7 +35,10 @@
 import { marshal as canonicalMarshal } from "../canonical/index.js";
 import {
   type SessionKeys,
+  HybridPublicKeySize,
   deriveSessionKeysWithResumption,
+  hybridDecapsulate,
+  hybridGenerateKeyPair,
   newHKDFSHA512,
   x25519Agree,
   x25519PublicKey,
@@ -41,6 +46,8 @@ import {
 import { fingerprint, verify as ed25519Verify } from "../keys/index.js";
 import { Session } from "../session/index.js";
 import type { Transport } from "../transport/index.js";
+
+import { sha256 } from "@noble/hashes/sha2.js";
 
 import { confirmationHash } from "./confirm.js";
 import { composeIdentityProof } from "./identity.js";
@@ -56,10 +63,22 @@ import {
   buildInit,
 } from "./messages.js";
 
+/**
+ * Negotiable handshake suite. The driver supports both the
+ * baseline X25519 + ChaCha20-Poly1305 suite and the hybrid
+ * Kyber768 + X25519 PQ suite. The negotiator picks one of these
+ * based on capability overlap; supplying `pq-kyber768-x25519`
+ * gives you the hybrid PQ KEM end-to-end and `x25519-chacha20-poly1305`
+ * gives you the classical baseline.
+ */
+export type HandshakeSuite =
+  | "x25519-chacha20-poly1305"
+  | "pq-kyber768-x25519";
+
 /** Configuration for the client side of a handshake. */
 export interface ClientConfig {
-  /** Algorithm suite to negotiate. v1 driver: "x25519-chacha20-poly1305". */
-  suite: "x25519-chacha20-poly1305";
+  /** Algorithm suite to negotiate. */
+  suite: HandshakeSuite;
   /** Capability set to advertise. */
   capabilities: Capabilities;
   /** Transport identifier ("ws", "h2", "quic"). Echoed in INIT. */
@@ -154,8 +173,13 @@ export async function runClient(
   transport: Transport,
   config: ClientConfig,
 ): Promise<Session> {
-  if (config.suite !== "x25519-chacha20-poly1305") {
-    throw new Error(`handshake: v1 driver only supports baseline suite, got ${config.suite}`);
+  if (
+    config.suite !== "x25519-chacha20-poly1305" &&
+    config.suite !== "pq-kyber768-x25519"
+  ) {
+    throw new Error(
+      `handshake: unsupported suite ${JSON.stringify(config.suite)}`,
+    );
   }
   try {
     const result = await runClientInner(transport, config);
@@ -189,11 +213,28 @@ async function runClientInner(
   config: ClientConfig,
 ): Promise<ClientSession> {
 
-  // Step 1: ephemeral + nonce.
-  const ephPriv = config.clientEphemeralPriv ?? randomBytes(32);
-  const ephPub = x25519PublicKey(ephPriv);
+  // Step 1: ephemeral + nonce. The wire shape of the ephemeral
+  // key depends on the suite: 32-byte X25519 pub for baseline,
+  // 1216-byte hybrid (kyberPub || x25519Pub) for PQ.
+  const isPQ = config.suite === "pq-kyber768-x25519";
+  let ephPriv: Uint8Array;
+  let ephPub: Uint8Array;
+  if (isPQ) {
+    const kp = hybridGenerateKeyPair();
+    ephPriv = kp.secretKey;
+    ephPub = kp.publicKey;
+  } else {
+    ephPriv = config.clientEphemeralPriv ?? randomBytes(32);
+    ephPub = x25519PublicKey(ephPriv);
+  }
   const clientNonce = config.clientNonce ?? randomBytes(32);
-  const ephKeyId = fingerprint(ephPub);
+  // The hybrid pub is too large to fingerprint with the 32-byte
+  // KEY.md primitive; we use a stable SHA-256 over the wire bytes
+  // for the key_id field. For baseline this stays the same as
+  // before.
+  const ephKeyId = isPQ
+    ? hexSha256(ephPub)
+    : fingerprint(ephPub);
 
   // Step 2: INIT.
   const init: InitMessage = buildInit({
@@ -229,8 +270,22 @@ async function runClientInner(
   const serverNonce = base64Decode(resp.server_nonce);
   const serverEphPub = base64Decode(resp.server_ephemeral_key.key);
 
-  // Step 4: derive session keys.
-  const sharedSecret = x25519Agree(ephPriv, serverEphPub);
+  // Step 4: derive session keys. For the PQ suite the wire
+  // server_ephemeral_key is a hybrid KEM ciphertext (kyberCt ||
+  // responderX25519Pub) that we decapsulate with the hybrid
+  // private key we generated in step 1; for baseline we run the
+  // legacy X25519 ECDH.
+  let sharedSecret: Uint8Array;
+  if (isPQ) {
+    if (ephPub.length !== HybridPublicKeySize) {
+      throw new Error(
+        `handshake: PQ ephemeral pub ${ephPub.length} bytes, want ${HybridPublicKeySize}`,
+      );
+    }
+    sharedSecret = hybridDecapsulate(serverEphPub, ephPriv);
+  } else {
+    sharedSecret = x25519Agree(ephPriv, serverEphPub);
+  }
   const kdf = newHKDFSHA512();
   const keys = deriveSessionKeysWithResumption(
     kdf,
@@ -348,6 +403,21 @@ function randomBytes(n: number): Uint8Array {
   const out = new Uint8Array(n);
   globalThis.crypto.getRandomValues(out);
   return out;
+}
+
+function hexSha256(bytes: Uint8Array): string {
+  // Hybrid ephemeral pubs are larger than 32 bytes, so we cannot
+  // route them through `keys.fingerprint` (which enforces a
+  // 32-byte input for KEY.md compatibility). The handshake uses
+  // ephemeral key_ids as opaque correlation tags only; SHA-256
+  // of the wire bytes gives a stable identifier of the right
+  // shape (lowercase hex).
+  const sum = sha256(bytes);
+  let s = "";
+  for (let i = 0; i < sum.length; i++) {
+    s += (sum[i] ?? 0).toString(16).padStart(2, "0");
+  }
+  return s;
 }
 
 function concat(a: Uint8Array, b: Uint8Array): Uint8Array {

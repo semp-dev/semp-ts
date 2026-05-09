@@ -43,7 +43,10 @@
 import { marshal as canonicalMarshal } from "../canonical/index.js";
 import {
   type SessionKeys,
+  HybridPublicKeySize,
   deriveSessionKeysWithResumption,
+  hybridDecapsulate,
+  hybridGenerateKeyPair,
   newHKDFSHA512,
   x25519Agree,
   x25519PublicKey,
@@ -54,6 +57,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 
 import { ChallengeInvalidError } from "./abort.js";
 import { confirmationHash } from "./confirm.js";
+import type { HandshakeSuite } from "./driver.js";
 import { HandshakeRejectedError } from "./driver.js";
 import { composeIdentityProof } from "./identity.js";
 import {
@@ -78,7 +82,7 @@ const POW_HARDCAP = MaxPoWDifficulty;
  * lifecycle.
  */
 export interface HandshakeClientConfig {
-  suite: "x25519-chacha20-poly1305";
+  suite: HandshakeSuite;
   capabilities: Capabilities;
   /** Transport identifier ("ws", "h2", "quic"). */
   transport: string;
@@ -125,7 +129,7 @@ export { HandshakeRejectedError };
  */
 export class HandshakeClient {
   // Constructor inputs.
-  private readonly suite: "x25519-chacha20-poly1305";
+  private readonly suite: HandshakeSuite;
   private readonly serverDomainPub: Uint8Array;
   private readonly capabilities: Capabilities;
   private readonly transportId: string;
@@ -151,9 +155,12 @@ export class HandshakeClient {
   private finalSession: HandshakeClientSession | null = null;
 
   constructor(cfg: HandshakeClientConfig) {
-    if (cfg.suite !== "x25519-chacha20-poly1305") {
+    if (
+      cfg.suite !== "x25519-chacha20-poly1305" &&
+      cfg.suite !== "pq-kyber768-x25519"
+    ) {
       throw new Error(
-        `handshake: client only supports baseline suite, got ${cfg.suite}`,
+        `handshake: unsupported suite ${JSON.stringify(cfg.suite)}`,
       );
     }
     if (cfg.serverDomainPub.length === 0) {
@@ -184,14 +191,28 @@ export class HandshakeClient {
     if (this.initCanonical !== null) {
       throw new Error("handshake: init already called");
     }
-    if (this.ephPriv === null) {
-      this.ephPriv = randomBytes(32);
+    if (this.suite === "pq-kyber768-x25519") {
+      if (this.ephPriv !== null) {
+        throw new Error(
+          "handshake: PQ suite does not accept pre-pinned clientEphemeralPriv",
+        );
+      }
+      const kp = hybridGenerateKeyPair();
+      this.ephPriv = kp.secretKey;
+      this.ephPub = kp.publicKey;
+    } else {
+      if (this.ephPriv === null) {
+        this.ephPriv = randomBytes(32);
+      }
+      this.ephPub = x25519PublicKey(this.ephPriv);
     }
-    this.ephPub = x25519PublicKey(this.ephPriv);
     if (this.nonce === null) {
       this.nonce = randomBytes(32);
     }
-    const ephKeyId = fingerprint(this.ephPub);
+    const ephKeyId =
+      this.suite === "pq-kyber768-x25519"
+        ? hexSha256(this.ephPub)
+        : fingerprint(this.ephPub);
     const init: InitMessage = buildInit({
       nonce: base64Encode(this.nonce),
       transport: this.transportId,
@@ -331,7 +352,15 @@ export class HandshakeClient {
     );
     const serverEphPub = base64Decode(resp.server_ephemeral_key.key);
     const serverNonce = base64Decode(resp.server_nonce);
-    const shared = x25519Agree(this.ephPriv, serverEphPub);
+    let shared: Uint8Array;
+    if (this.suite === "pq-kyber768-x25519") {
+      if (this.ephPub === null || this.ephPub.length !== HybridPublicKeySize) {
+        throw new Error("handshake: PQ ephemeral pub missing or wrong size");
+      }
+      shared = hybridDecapsulate(serverEphPub, this.ephPriv);
+    } else {
+      shared = x25519Agree(this.ephPriv, serverEphPub);
+    }
     const kdf = newHKDFSHA512();
     const keys = deriveSessionKeysWithResumption(
       kdf,
@@ -669,6 +698,18 @@ function randomBytes(n: number): Uint8Array {
   const out = new Uint8Array(n);
   globalThis.crypto.getRandomValues(out);
   return out;
+}
+
+function hexSha256(bytes: Uint8Array): string {
+  // Hybrid ephemeral pubs (1216 bytes) overflow the 32-byte input
+  // `keys.fingerprint` accepts, so we surface a SHA-256 over the
+  // wire bytes as the opaque ephemeral key_id for the PQ suite.
+  const sum = sha256(bytes);
+  let s = "";
+  for (let i = 0; i < sum.length; i++) {
+    s += (sum[i] ?? 0).toString(16).padStart(2, "0");
+  }
+  return s;
 }
 
 function concat(a: Uint8Array, b: Uint8Array): Uint8Array {

@@ -38,6 +38,7 @@ export {
 export {
   type ClientConfig,
   type ClientSession,
+  type HandshakeSuite,
   HandshakeRejectedError,
   runClient,
 } from "./driver.js";

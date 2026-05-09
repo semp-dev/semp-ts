@@ -123,6 +123,81 @@ export function hybridPrivateKeyFromKyberAndX25519(
 }
 
 /**
+ * Generate a fresh hybrid keypair. The public half is
+ * `kyberPub || x25519Pub` (1216 bytes), the private half is
+ * `kyberPriv || x25519Priv` (2432 bytes). Used by the initiator
+ * side of the handshake to produce an ephemeral hybrid pub for
+ * INIT.
+ *
+ * Both halves are entropy-driven via `globalThis.crypto`. The
+ * Kyber half uses ML-KEM-768 keygen with a fresh 64-byte seed.
+ */
+export function hybridGenerateKeyPair(): {
+  publicKey: Uint8Array;
+  secretKey: Uint8Array;
+} {
+  const xPriv = new Uint8Array(X25519Size);
+  globalThis.crypto.getRandomValues(xPriv);
+  const xPub = x25519PublicKey(xPriv);
+  const seed = new Uint8Array(64);
+  globalThis.crypto.getRandomValues(seed);
+  const { secretKey: kyberPriv, publicKey: kyberPub } = ml_kem768.keygen(seed);
+  const pub = new Uint8Array(HybridPublicKeySize);
+  pub.set(kyberPub, 0);
+  pub.set(xPub, Kyber768PublicKeySize);
+  const priv = new Uint8Array(HybridPrivateKeySize);
+  priv.set(kyberPriv, 0);
+  priv.set(xPriv, Kyber768PrivateKeySize);
+  return { publicKey: pub, secretKey: priv };
+}
+
+/**
+ * Hybrid Encapsulate. Responder-side: takes the initiator's
+ * hybrid public key (`kyberPub || x25519Pub`), generates a fresh
+ * ephemeral X25519 keypair, encapsulates a Kyber shared key
+ * under the initiator's Kyber pub, and returns:
+ *
+ *   - sharedSecret: `K_kyber || K_x25519` (64 bytes)
+ *   - ciphertext:   `kyberCt || responderX25519Pub` (1120 bytes)
+ *
+ * Wire layout matches `ENVELOPE.md` §4.4.1 (Kyber FIRST).
+ */
+export function hybridEncapsulate(
+  remotePub: Uint8Array,
+): { ciphertext: Uint8Array; sharedSecret: Uint8Array } {
+  if (remotePub.length !== HybridPublicKeySize) {
+    throw new Error(
+      `hybrid Encapsulate: remote pub ${remotePub.length} bytes, want ${HybridPublicKeySize}`,
+    );
+  }
+  const kyberRemote = remotePub.slice(0, Kyber768PublicKeySize);
+  const xRemote = remotePub.slice(Kyber768PublicKeySize);
+  const xEphPriv = new Uint8Array(X25519Size);
+  globalThis.crypto.getRandomValues(xEphPriv);
+  const xEphPub = x25519PublicKey(xEphPriv);
+  const xSS = x25519Agree(xEphPriv, xRemote);
+  // Burn the X25519 ephemeral private now that the shared
+  // secret is in hand.
+  xEphPriv.fill(0);
+  // ML-KEM-768 entropy-driven encapsulation. The noble API
+  // expects the FIPS 203 `m` randomness as the second argument;
+  // when omitted it pulls from `globalThis.crypto`.
+  const m = new Uint8Array(32);
+  globalThis.crypto.getRandomValues(m);
+  const { cipherText: kyberCt, sharedSecret: kyberSS } = ml_kem768.encapsulate(
+    kyberRemote,
+    m,
+  );
+  const ciphertext = new Uint8Array(HybridCiphertextSize);
+  ciphertext.set(kyberCt, 0);
+  ciphertext.set(xEphPub, Kyber768CiphertextSize);
+  const sharedSecret = new Uint8Array(HybridSharedSecretSize);
+  sharedSecret.set(kyberSS, 0);
+  sharedSecret.set(xSS, Kyber768SharedKeySize);
+  return { ciphertext, sharedSecret };
+}
+
+/**
  * Hybrid Decapsulate. Reverses the responder-side encapsulation
  * (kyber half + X25519 ECDH against the sender's ephemeral pub)
  * and returns the combined shared secret `K_kyber || K_x25519`.

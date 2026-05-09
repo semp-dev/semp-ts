@@ -35,15 +35,19 @@ import { marshal as canonicalMarshal } from "../canonical/index.js";
 import {
   type SessionKeys,
   deriveSessionKeysWithResumption,
+  hybridEncapsulate,
   newHKDFSHA512,
   x25519Agree,
   x25519PublicKey,
 } from "../crypto/index.js";
 import { fingerprint, publicKeyFromSeed, verify as ed25519Verify } from "../keys/index.js";
+
+import { sha256 } from "@noble/hashes/sha2.js";
 import { Session } from "../session/index.js";
 import type { Transport } from "../transport/index.js";
 
 import { confirmationHash } from "./confirm.js";
+import type { HandshakeSuite } from "./driver.js";
 import {
   type IdentityProofBlock,
   IdentityPrefix,
@@ -84,7 +88,7 @@ export interface ServerConfig {
    * Suites this server accepts, in preference order. The server
    * picks the first one that's also in the client's offered set.
    */
-  supportedSuites: ReadonlyArray<"x25519-chacha20-poly1305">;
+  supportedSuites: ReadonlyArray<HandshakeSuite>;
   /**
    * Per-session identity-proof signature. The driver embeds this
    * into RESPONSE.server_identity_proof. Production servers compute
@@ -196,16 +200,33 @@ async function runServerInner(
     throw new Error("handshake: no mutually supported suite");
   }
 
-  // Step 3: ephemeral + nonce + session_id.
-  const serverEphPriv = config.serverEphemeralPriv ?? randomBytes(32);
-  const serverEphPub = x25519PublicKey(serverEphPriv);
-  const serverEphKeyId = fingerprint(serverEphPub);
-  const serverNonce = config.serverNonce ?? randomBytes(32);
-
-  // Step 4: derive session keys.
+  // Step 3: ephemeral + nonce + session_id. The wire form of
+  // server_ephemeral_key depends on the suite: a 32-byte X25519
+  // pub for baseline, a 1120-byte hybrid KEM ciphertext
+  // (kyberCt || responderX25519Pub) for PQ. The server holds no
+  // ephemeral private key on the PQ path because Encapsulate
+  // produces the shared secret directly.
+  const isPQ = negotiated === "pq-kyber768-x25519";
   const clientEphPub = base64Decode(init.client_ephemeral_key.key);
   const clientNonce = base64Decode(init.nonce);
-  const sharedSecret = x25519Agree(serverEphPriv, clientEphPub);
+  const serverNonce = config.serverNonce ?? randomBytes(32);
+  let serverEphPub: Uint8Array;
+  let sharedSecret: Uint8Array;
+  if (isPQ) {
+    const enc = hybridEncapsulate(clientEphPub);
+    serverEphPub = enc.ciphertext;
+    sharedSecret = enc.sharedSecret;
+  } else {
+    const serverEphPriv = config.serverEphemeralPriv ?? randomBytes(32);
+    serverEphPub = x25519PublicKey(serverEphPriv);
+    sharedSecret = x25519Agree(serverEphPriv, clientEphPub);
+    serverEphPriv.fill(0);
+  }
+  const serverEphKeyId = isPQ
+    ? hexSha256(serverEphPub)
+    : fingerprint(serverEphPub);
+
+  // Step 4: derive session keys.
   const kdf = newHKDFSHA512();
   const keys = deriveSessionKeysWithResumption(
     kdf,
@@ -378,8 +399,8 @@ async function runServerInner(
 
 function pickSuite(
   clientOffers: string[],
-  serverSupports: ReadonlyArray<"x25519-chacha20-poly1305">,
-): "x25519-chacha20-poly1305" | undefined {
+  serverSupports: ReadonlyArray<HandshakeSuite>,
+): HandshakeSuite | undefined {
   for (const s of serverSupports) {
     if (clientOffers.includes(s)) {
       return s;
@@ -450,6 +471,20 @@ function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
   out.set(a, 0);
   out.set(b, a.length);
   return out;
+}
+
+function hexSha256(bytes: Uint8Array): string {
+  // Hybrid ephemeral pubs / KEM ciphertexts are larger than the
+  // 32-byte input `keys.fingerprint` accepts, so this opaque
+  // SHA-256-of-the-wire-bytes is what we surface as the
+  // ephemeral key_id field for the PQ suite. The handshake uses
+  // ephemeral key_ids as opaque correlation tags only.
+  const sum = sha256(bytes);
+  let s = "";
+  for (let i = 0; i < sum.length; i++) {
+    s += (sum[i] ?? 0).toString(16).padStart(2, "0");
+  }
+  return s;
 }
 
 function base64Encode(b: Uint8Array): string {
