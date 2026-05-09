@@ -130,6 +130,49 @@ export interface RecoveryVerifyPK {
   public_key: string;
 }
 
+/** Inner identity-key block carried in {@link BundlePayload} per §2.3. */
+export interface IdentityKey {
+  algorithm: string;
+  /** Base64-encoded public key. */
+  public_key: string;
+  /** Base64-encoded private key. */
+  private_key: string;
+  /** ISO 8601 UTC. */
+  created: string;
+  /** ISO 8601 UTC; absent when the key does not expire. */
+  expires?: string;
+}
+
+/** Inner encryption-key block carried in {@link BundlePayload} per §2.3. */
+export interface EncryptionKey {
+  algorithm: string;
+  key_id: string;
+  /** Base64-encoded public key. */
+  public_key: string;
+  /** Base64-encoded private key. */
+  private_key: string;
+  /** ISO 8601 UTC. */
+  created: string;
+  /** ISO 8601 UTC; absent when the key does not expire. */
+  expires?: string;
+  /** ISO 8601 UTC; null when the key is still current. */
+  superseded_at?: string | null;
+}
+
+/**
+ * Plaintext shape of {@link BackupBundle.encrypted_payload} per
+ * §2.3. Includes superseded + revoked encryption keys so envelopes
+ * sealed under any historical key remain decryptable after recovery.
+ */
+export interface BundlePayload {
+  identity_key: IdentityKey;
+  encryption_keys: EncryptionKey[];
+  /** Accumulated SEMP_DELIVERY_RECEIPT objects (§2.3.1). */
+  receipts?: unknown[];
+  /** Application-defined metadata. */
+  metadata?: Record<string, unknown>;
+}
+
 /**
  * SEMP_BACKUP_BUNDLE per §2.1. Signed by the user's currently active
  * identity private key under the SEMP-RECOVERY-BUNDLE: prefix.
