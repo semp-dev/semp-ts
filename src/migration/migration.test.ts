@@ -71,7 +71,7 @@ describe("migration.composeMigrationRecord", () => {
     const oldDomSig = sr.old_domain_signature as { key_id: string; value: string };
 
     const composed = composeMigrationRecord({
-      mode: sr.mode as string,
+      mode: sr.mode as "cooperative" | "unilateral",
       recordId: sr.record_id as string,
       migratedAt: sr.migrated_at as string,
       forwardingWindowUntil: sr.forwarding_window_until as string,

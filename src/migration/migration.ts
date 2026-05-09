@@ -1,160 +1,120 @@
 /**
- * Cooperative migration record compose per MIGRATION.md §3.
+ * Convenience compose for the full migration record per MIGRATION.md §3.
  *
- * A migration record carries four signatures. Each signer's bytes
- * are computed over a canonical record where every PRIOR signer's
- * value is populated and every LATER signer's value is "" — a
- * cumulative chain that prevents reordering.
- *
- * Chain order:
- *   1. old_identity_signature
- *   2. new_identity_signature
- *   3. new_domain_signature
- *   4. old_domain_signature
- *
- * The verify path replays this same blanking sequence; semp-ts
- * already exercises it in the vectors-runner.
+ * Wraps {@link prepareSignatures} + the four `sign*` passes into a
+ * single deterministic composer. Production callers that need the
+ * cooperative submit / accept flow use
+ * {@link "./orchestrate".buildSubmission} +
+ * {@link "./orchestrate".acceptSubmission} instead.
  *
  * @module
  */
 
-import { sign as ed25519Sign } from "../keys/index.js";
-import { marshal as canonicalMarshal } from "../canonical/index.js";
-
-/** Domain-separation prefix per ENVELOPE.md §4.3. */
-export const MigrationPrefix = "SEMP-MIGRATION-RECORD:";
-
-/** A signature block as it appears in the wire record. */
-interface SigBlock {
-  algorithm: "ed25519";
-  key_id: string;
-  value: string;
-}
+import {
+  prepareSignatures,
+  signNewDomain,
+  signNewIdentity,
+  signOldDomain,
+  signOldIdentity,
+} from "./sign.js";
+import {
+  type MigrationMode,
+  type MigrationRecord,
+  MigrationPrefix,
+  MigrationRecordType,
+  MigrationRecordVersion,
+} from "./types.js";
 
 /** Inputs to {@link composeMigrationRecord}. */
 export interface ComposeMigrationInput {
-  /** Migration mode (e.g. "cooperative"). */
-  mode: string;
+  mode: MigrationMode;
   /** ULID for the migration record. */
   recordId: string;
-  /** ISO 8601 timestamp the migration was effected. */
+  /** ISO 8601 UTC timestamp the migration was effected. */
   migratedAt: string;
-  /** ISO 8601 timestamp until which the old domain forwards mail. */
-  forwardingWindowUntil: string;
-  /** Old SEMP address (`alice@old.example`). */
+  /**
+   * ISO 8601 UTC timestamp until which the old domain forwards.
+   * REQUIRED when `mode === "cooperative"`. Pass null/undefined in
+   * unilateral mode to omit.
+   */
+  forwardingWindowUntil?: string | null;
   oldAddress: string;
-  /** New SEMP address (`alice@new.example`). */
   newAddress: string;
 
-  /** Old identity key fingerprint (key_id). */
   oldIdentityKeyId: string;
-  /** Old identity 32-byte Ed25519 secret seed. */
   oldIdentitySeed: Uint8Array;
 
-  /** New identity key fingerprint. */
   newIdentityKeyId: string;
-  /** Base64-encoded new identity public key (advertised in the record). */
+  /** Base64-encoded new identity public key. */
   newIdentityPublicKey: string;
-  /** New identity 32-byte Ed25519 secret seed. */
   newIdentitySeed: Uint8Array;
 
-  /** Old domain signing fingerprint. */
-  oldDomainKeyId: string;
-  /** Old domain 32-byte Ed25519 secret seed. */
-  oldDomainSeed: Uint8Array;
-
-  /** New domain signing fingerprint. */
   newDomainKeyId: string;
-  /** New domain 32-byte Ed25519 secret seed. */
   newDomainSeed: Uint8Array;
 
-  /** Optional extensions block. */
+  /** Cooperative mode only. */
+  oldDomainKeyId?: string;
+  /** Cooperative mode only. */
+  oldDomainSeed?: Uint8Array;
+
   extensions?: Record<string, unknown>;
 }
 
 /**
- * Compose a fully-signed migration record. The four signatures are
- * applied in chain order; each step canonicalizes the record with
- * the appropriate blanking and Ed25519-signs it under the
- * SEMP-MIGRATION-RECORD: prefix.
+ * Compose a fully-signed migration record. The four (or three, in
+ * unilateral mode) signatures are applied in §3.3 chain order.
  */
-export function composeMigrationRecord(input: ComposeMigrationInput): Record<string, unknown> {
-  // Build the record skeleton with all four signature blocks set
-  // to placeholders. Subsequent steps mutate this object in place.
-  const record: Record<string, unknown> = {
-    type: "SEMP_MIGRATION",
-    version: "1.0.0",
+export function composeMigrationRecord(
+  input: ComposeMigrationInput,
+): MigrationRecord {
+  const r: MigrationRecord = {
+    type: MigrationRecordType,
+    version: MigrationRecordVersion,
     record_id: input.recordId,
-    mode: input.mode,
     old_address: input.oldAddress,
     new_address: input.newAddress,
-    migrated_at: input.migratedAt,
-    forwarding_window_until: input.forwardingWindowUntil,
     old_identity_key_id: input.oldIdentityKeyId,
     new_identity_key_id: input.newIdentityKeyId,
     new_identity_public_key: input.newIdentityPublicKey,
-    extensions: input.extensions ?? {},
-    old_identity_signature: blank("ed25519", input.oldIdentityKeyId),
-    new_identity_signature: blank("ed25519", input.newIdentityKeyId),
-    new_domain_signature: blank("ed25519", input.newDomainKeyId),
-    old_domain_signature: blank("ed25519", input.oldDomainKeyId),
+    migrated_at: input.migratedAt,
+    forwarding_window_until:
+      input.forwardingWindowUntil === undefined ||
+      input.forwardingWindowUntil === ""
+        ? null
+        : input.forwardingWindowUntil,
+    mode: input.mode,
+    old_identity_signature: { algorithm: "", key_id: "", value: "" },
+    new_identity_signature: { algorithm: "", key_id: "", value: "" },
+    new_domain_signature: { algorithm: "", key_id: "", value: "" },
+    old_domain_signature: null,
   };
-
-  // Chain order: each step blanks ITSELF and every LATER signer,
-  // leaves PRIOR signers populated.
-  const chain: Array<{
-    field: string;
-    seed: Uint8Array;
-  }> = [
-    { field: "old_identity_signature", seed: input.oldIdentitySeed },
-    { field: "new_identity_signature", seed: input.newIdentitySeed },
-    { field: "new_domain_signature", seed: input.newDomainSeed },
-    { field: "old_domain_signature", seed: input.oldDomainSeed },
-  ];
-
-  for (let i = 0; i < chain.length; i++) {
-    // Blank step[i] and every step[j>i]; leave step[j<i] populated.
-    const view = JSON.parse(JSON.stringify(record)) as Record<string, unknown>;
-    for (let j = i; j < chain.length; j++) {
-      const step = chain[j];
-      if (step === undefined) {
-        continue;
-      }
-      const obj = view[step.field] as Record<string, unknown>;
-      obj.value = "";
+  if (input.extensions !== undefined) {
+    r.extensions = input.extensions;
+  }
+  prepareSignatures(
+    r,
+    input.oldIdentityKeyId,
+    input.newIdentityKeyId,
+    input.newDomainKeyId,
+    input.oldDomainKeyId,
+  );
+  signOldIdentity(r, input.oldIdentitySeed, input.oldIdentityKeyId);
+  signNewIdentity(r, input.newIdentitySeed, input.newIdentityKeyId);
+  signNewDomain(r, input.newDomainSeed, input.newDomainKeyId);
+  if (input.mode === "cooperative") {
+    if (
+      input.oldDomainSeed === undefined ||
+      input.oldDomainKeyId === undefined ||
+      input.oldDomainKeyId === ""
+    ) {
+      throw new Error(
+        "migration: cooperative mode requires oldDomainSeed + oldDomainKeyId",
+      );
     }
-    const canonical = canonicalMarshal(view);
-    const signingInput = concat(new TextEncoder().encode(MigrationPrefix), canonical);
-    const me = chain[i];
-    if (me === undefined) {
-      continue;
-    }
-    const sig = ed25519Sign(me.seed, signingInput);
-    const block = record[me.field] as Record<string, unknown>;
-    block.value = base64Encode(sig);
+    signOldDomain(r, input.oldDomainSeed, input.oldDomainKeyId);
   }
-
-  return record;
+  return r;
 }
 
-function blank(algorithm: "ed25519", keyId: string): SigBlock {
-  return { algorithm, key_id: keyId, value: "" };
-}
-
-function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
-  const out = new Uint8Array(a.length + b.length);
-  out.set(a, 0);
-  out.set(b, a.length);
-  return out;
-}
-
-function base64Encode(b: Uint8Array): string {
-  if (typeof Buffer !== "undefined") {
-    return Buffer.from(b).toString("base64");
-  }
-  let bin = "";
-  for (let i = 0; i < b.length; i++) {
-    bin += String.fromCharCode(b[i] ?? 0);
-  }
-  return btoa(bin);
-}
+// Re-export so old import paths keep working.
+export { MigrationPrefix };
