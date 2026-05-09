@@ -418,8 +418,8 @@ export function handleSessionLifecycle(entry: VectorEntry): void {
 
 export function handleDeliveryStatus(entry: VectorEntry): void {
   switch (entry.id) {
-    case "acknowledgment-to-ui-state":
-      handleDecisionTable(entry, ["server_acknowledgment", "client_ui_state"]);
+    case "submission-status-to-ui-state":
+      handleDecisionTable(entry, ["submission_status", "client_ui_state"]);
       break;
     case "queued-to-final-transitions":
       handleDecisionTable(entry, ["initial_status", "delivery_event_status", "client_action"]);
