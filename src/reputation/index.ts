@@ -51,11 +51,6 @@ export {
 } from "./eligibility.js";
 
 export {
-  CredibilityLedger,
-  DefaultCredibility,
-} from "./credibility.js";
-
-export {
   type ReferenceEntry,
   type References,
   ReferencesPrefix,
