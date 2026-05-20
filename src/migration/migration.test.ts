@@ -74,7 +74,7 @@ describe("migration.composeMigrationRecord", () => {
       mode: sr.mode as "cooperative" | "unilateral",
       recordId: sr.record_id as string,
       migratedAt: sr.migrated_at as string,
-      forwardingWindowUntil: sr.forwarding_window_until as string,
+      noticeWindowUntil: sr.notice_window_until as string,
       oldAddress: sr.old_address as string,
       newAddress: sr.new_address as string,
 

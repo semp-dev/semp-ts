@@ -4,11 +4,11 @@
  *
  * The new provider builds a 3-signature submission record and POSTs
  * it to the old provider's migration endpoint. The old provider
- * verifies the three submitted signatures, applies its forwarding
+ * verifies the three submitted signatures, applies its notice
  * policy, registers the §6 lockout, countersigns, persists, and
  * returns the final 4-signature record.
  *
- * Unilateral mode skips the countersign step — the new provider's
+ * Unilateral mode skips the countersign step - the new provider's
  * 3-signature record is the final published form.
  *
  * @module
@@ -33,10 +33,10 @@ import {
 import {
   type MigrationMode,
   type MigrationRecord,
-  MaxForwardingWindowMs,
+  MaxNoticeWindowMs,
   MigrationRecordType,
   MigrationRecordVersion,
-  MinForwardingWindowMs,
+  MinNoticeWindowMs,
 } from "./types.js";
 
 /** Inputs to {@link buildSubmission}. */
@@ -59,8 +59,8 @@ export interface BuildSubmissionInput {
 
   mode: MigrationMode;
 
-  /** Forwarding window in milliseconds. Cooperative mode only. */
-  forwardingWindowMs?: number;
+  /** Notice window in milliseconds. Cooperative mode only. */
+  noticeWindowMs?: number;
 
   /** ISO 8601 UTC. */
   migratedAt: string;
@@ -73,9 +73,9 @@ export interface BuildSubmissionInput {
 }
 
 /**
- * Construct and apply the new-provider signatures (passes 1–3). In
+ * Construct and apply the new-provider signatures (passes 1-3). In
  * cooperative mode the returned record's `old_domain_signature`
- * slot is prepared but empty — the new provider POSTs the record
+ * slot is prepared but empty - the new provider POSTs the record
  * to the old provider, who runs {@link acceptSubmission} to verify
  * and countersign.
  */
@@ -103,17 +103,17 @@ export function buildSubmission(
     throw new Error(`migration: unknown mode ${JSON.stringify(input.mode)}`);
   }
 
-  let forwardingUntil: string | null = null;
+  let noticeUntil: string | null = null;
   if (input.mode === "cooperative") {
-    const windowMs = input.forwardingWindowMs ?? 0;
-    if (windowMs < MinForwardingWindowMs) {
+    const windowMs = input.noticeWindowMs ?? 0;
+    if (windowMs < MinNoticeWindowMs) {
       throw new Error(
-        `migration: forwarding window ${windowMs} below minimum ${MinForwardingWindowMs}`,
+        `migration: notice window ${windowMs} below minimum ${MinNoticeWindowMs}`,
       );
     }
-    if (windowMs > MaxForwardingWindowMs) {
+    if (windowMs > MaxNoticeWindowMs) {
       throw new Error(
-        `migration: forwarding window ${windowMs} exceeds maximum ${MaxForwardingWindowMs}`,
+        `migration: notice window ${windowMs} exceeds maximum ${MaxNoticeWindowMs}`,
       );
     }
     if (input.oldDomainKeyId === undefined || input.oldDomainKeyId === "") {
@@ -125,7 +125,7 @@ export function buildSubmission(
     if (Number.isNaN(migratedMs)) {
       throw new Error("migration: migrated_at is not ISO 8601");
     }
-    forwardingUntil = new Date(migratedMs + windowMs).toISOString().replace(/\.\d{3}Z$/, "Z");
+    noticeUntil = new Date(migratedMs + windowMs).toISOString().replace(/\.\d{3}Z$/, "Z");
   }
 
   const recordId = input.recordId ?? newRecordID(input.rand);
@@ -140,7 +140,7 @@ export function buildSubmission(
     new_identity_key_id: input.newIdentityKeyId,
     new_identity_public_key: input.newIdentityPublicKey,
     migrated_at: input.migratedAt,
-    forwarding_window_until: forwardingUntil,
+    notice_window_until: noticeUntil,
     mode: input.mode,
     old_identity_signature: { algorithm: "", key_id: "", value: "" },
     new_identity_signature: { algorithm: "", key_id: "", value: "" },
@@ -188,10 +188,10 @@ export interface AcceptSubmissionInput {
   clockSkewMs?: number;
 
   /**
-   * Optional forwarding-policy hook. Called BEFORE countersigning.
+   * Optional notice-policy hook. Called BEFORE countersigning.
    * Throw to refuse the submission with a structured reason.
    */
-  forwardingPolicy?: (r: MigrationRecord) => Promise<void> | void;
+  noticePolicy?: (r: MigrationRecord) => Promise<void> | void;
 
   /** Optional persistence layer. */
   store?: PublicationStore;
@@ -202,11 +202,11 @@ export interface AcceptSubmissionInput {
 
 /**
  * Old-provider side of cooperative migration: verify the 3
- * submitted signatures, apply optional forwarding policy, register
+ * submitted signatures, apply optional notice policy, register
  * the §6 lockout, countersign with `old_domain_priv`, persist via
  * the store, and return the 4-sig record.
  *
- * In unilateral mode this throws — there is no countersignature
+ * In unilateral mode this throws - there is no countersignature
  * step in the unilateral flow.
  */
 export async function acceptSubmission(
@@ -221,7 +221,7 @@ export async function acceptSubmission(
   validateMigrationRecord(r);
 
   // Verify the three submitted signatures (the §3.3 chain is not
-  // yet complete — the old domain signature has not been added —
+  // yet complete - the old domain signature has not been added -
   // so verify each prior pass individually rather than calling the
   // full verifyMigrationRecord.)
   const newIdentityPub = base64Decode(r.new_identity_public_key);
@@ -243,14 +243,14 @@ export async function acceptSubmission(
     input.clockSkewMs,
   );
 
-  // Optional forwarding-policy hook.
-  if (input.forwardingPolicy !== undefined) {
-    await input.forwardingPolicy(r);
+  // Optional notice-policy hook.
+  if (input.noticePolicy !== undefined) {
+    await input.noticePolicy(r);
   }
 
-  // Register lockout for the duration of the forwarding window.
-  if (input.lockout !== undefined && r.forwarding_window_until !== null) {
-    const untilMs = Date.parse(r.forwarding_window_until);
+  // Register lockout for the duration of the notice window.
+  if (input.lockout !== undefined && r.notice_window_until !== null) {
+    const untilMs = Date.parse(r.notice_window_until);
     if (!Number.isNaN(untilMs)) {
       const localpart = r.old_address.includes("@")
         ? r.old_address.split("@")[0] ?? r.old_address
@@ -310,7 +310,7 @@ export async function applyThirdPartyPolicy(
 }
 
 // ---------------------------------------------------------------------------
-// Helpers (inline ULID minter — same shape as elsewhere)
+// Helpers (inline ULID minter - same shape as elsewhere)
 
 const ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 

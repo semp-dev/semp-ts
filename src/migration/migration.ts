@@ -33,11 +33,13 @@ export interface ComposeMigrationInput {
   /** ISO 8601 UTC timestamp the migration was effected. */
   migratedAt: string;
   /**
-   * ISO 8601 UTC timestamp until which the old domain forwards.
-   * REQUIRED when `mode === "cooperative"`. Pass null/undefined in
-   * unilateral mode to omit.
+   * ISO 8601 UTC end of the migration notice window. During this
+   * window the old provider serves migration_notice on rejections
+   * and migration_to on key fetches. REQUIRED when
+   * `mode === "cooperative"`. Pass null/undefined in unilateral
+   * mode to omit.
    */
-  forwardingWindowUntil?: string | null;
+  noticeWindowUntil?: string | null;
   oldAddress: string;
   newAddress: string;
 
@@ -77,11 +79,11 @@ export function composeMigrationRecord(
     new_identity_key_id: input.newIdentityKeyId,
     new_identity_public_key: input.newIdentityPublicKey,
     migrated_at: input.migratedAt,
-    forwarding_window_until:
-      input.forwardingWindowUntil === undefined ||
-      input.forwardingWindowUntil === ""
+    notice_window_until:
+      input.noticeWindowUntil === undefined ||
+      input.noticeWindowUntil === ""
         ? null
-        : input.forwardingWindowUntil,
+        : input.noticeWindowUntil,
     mode: input.mode,
     old_identity_signature: { algorithm: "", key_id: "", value: "" },
     new_identity_signature: { algorithm: "", key_id: "", value: "" },

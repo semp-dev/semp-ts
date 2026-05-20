@@ -1,10 +1,16 @@
 /**
- * Migration notice messages per MIGRATION.md §4.
+ * Migration notice body construction per MIGRATION.md §5.3.
  *
- * A `SEMP_MIGRATION_NOTICE` is what a server returns to a sender
- * that attempted to deliver to a migrated address. It carries a
- * pointer to the published migration record (URL + record_id) so
- * the sender's stack can fetch and verify it before redirecting.
+ * The migration notice is a body field attached to a
+ * policy_forbidden envelope rejection that the old provider emits
+ * during the migration notice window. It points the sender at the
+ * recipient's new address and at the published migration record
+ * (URL + record_id) so the sender's stack can fetch and verify the
+ * record before redirecting.
+ *
+ * After the notice window elapses the old provider stops attaching
+ * the notice and handles the old address the same way it handles a
+ * non-existent address.
  *
  * @module
  */
@@ -13,109 +19,63 @@ import {
   type MigrationNotice,
   type MigrationNoticeRejection,
   type MigrationRecord,
-  MigrationNoticeType,
   MigrationRecordVersion,
 } from "./types.js";
 
 /** Inputs to {@link buildMigrationNotice}. */
 export interface BuildMigrationNoticeInput {
   record: MigrationRecord;
-  /** URL pattern with `{record_id}` placeholder, e.g. `https://old.example/migration/{record_id}`. */
-  recordUrlPattern: string;
-  /** Optional pre-assigned notice id; auto-generated when omitted. */
-  noticeId?: string;
-  /** Wall-clock; defaults to `() => new Date()`. */
-  nowFn?: () => Date;
-  /** Random source for ULID generation. */
-  rand?: (n: number) => Uint8Array;
+  /**
+   * Optional URL template the operator uses to expose published
+   * records (typically
+   * "https://<old-domain>/.well-known/semp/migration/<record_id>"
+   * per §5.3 example). When the template contains the literal
+   * "<record_id>" placeholder the record's ID is substituted;
+   * otherwise the template is used verbatim. Omit to exclude
+   * migration_record_url from the notice.
+   */
+  recordUrlPattern?: string;
 }
 
 /**
- * Build a {@link MigrationNotice} that points at the published
- * `record`. The notice is unsigned — the recipient sender verifies
- * the underlying record by fetching `record_url` and running
- * `verifyMigrationRecord`.
+ * Build a {@link MigrationNotice} from a published migration
+ * record. The notice is unsigned; the receiving sender verifies
+ * the underlying record by fetching migration_record_url and
+ * running `verifyMigrationRecord`.
  */
 export function buildMigrationNotice(
   input: BuildMigrationNoticeInput,
 ): MigrationNotice {
-  if (input.recordUrlPattern === "" || !input.recordUrlPattern.includes("{record_id}")) {
-    throw new Error(
-      "migration: recordUrlPattern must include {record_id} placeholder",
-    );
-  }
-  const recordUrl = input.recordUrlPattern.replace(
-    "{record_id}",
-    encodeURIComponent(input.record.record_id),
-  );
-  const noticeId = input.noticeId ?? newULID(input.rand);
-  const nowFn = input.nowFn ?? (() => new Date());
-  return {
-    type: MigrationNoticeType,
-    version: MigrationRecordVersion,
-    notice_id: noticeId,
-    record_id: input.record.record_id,
-    record_url: recordUrl,
-    old_address: input.record.old_address,
+  const notice: MigrationNotice = {
     new_address: input.record.new_address,
-    mode: input.record.mode,
-    issued_at: isoSecond(nowFn()),
+    migration_record_id: input.record.record_id,
   };
+  if (input.recordUrlPattern !== undefined && input.recordUrlPattern !== "") {
+    notice.migration_record_url = input.recordUrlPattern.includes("<record_id>")
+      ? input.recordUrlPattern.replaceAll(
+          "<record_id>",
+          input.record.record_id,
+        )
+      : input.recordUrlPattern;
+  }
+  return notice;
 }
 
-/** Construct a rejection wrapper to refuse honoring a notice. */
+/**
+ * Wrap a {@link MigrationNotice} in the §5.3 SEMP_ENVELOPE
+ * step=rejected response. The reason is a human-readable
+ * description; the spec example uses "Recipient has migrated."
+ */
 export function newMigrationNoticeRejection(
   notice: MigrationNotice,
-  reason: string,
+  reason = "Recipient has migrated.",
 ): MigrationNoticeRejection {
-  return { notice, reason };
-}
-
-// ---------------------------------------------------------------------------
-// Helpers (inlined ULID minter — same as elsewhere in the codebase)
-
-const ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-
-function newULID(rand?: (n: number) => Uint8Array): string {
-  const r = rand ?? defaultRand;
-  const bits = new Uint8Array(16);
-  const ms = BigInt(Date.now());
-  bits[0] = Number((ms >> 40n) & 0xffn);
-  bits[1] = Number((ms >> 32n) & 0xffn);
-  bits[2] = Number((ms >> 24n) & 0xffn);
-  bits[3] = Number((ms >> 16n) & 0xffn);
-  bits[4] = Number((ms >> 8n) & 0xffn);
-  bits[5] = Number(ms & 0xffn);
-  const random = r(10);
-  for (let i = 0; i < 10; i++) {
-    bits[6 + i] = random[i] ?? 0;
-  }
-  let u = 0n;
-  for (let i = 0; i < 8; i++) {
-    u = (u << 8n) | BigInt(bits[i] ?? 0);
-  }
-  let u2 = 0n;
-  for (let i = 8; i < 16; i++) {
-    u2 = (u2 << 8n) | BigInt(bits[i] ?? 0);
-  }
-  const out = new Array<string>(26);
-  for (let i = 25; i >= 13; i--) {
-    out[i] = ULID_ALPHABET[Number(u2 & 31n)] ?? "0";
-    u2 >>= 5n;
-  }
-  for (let i = 12; i >= 0; i--) {
-    out[i] = ULID_ALPHABET[Number(u & 31n)] ?? "0";
-    u >>= 5n;
-  }
-  return out.join("");
-}
-
-function defaultRand(n: number): Uint8Array {
-  const out = new Uint8Array(n);
-  globalThis.crypto.getRandomValues(out);
-  return out;
-}
-
-function isoSecond(d: Date): string {
-  return d.toISOString().replace(/\.\d{3}Z$/, "Z");
+  return {
+    type: "SEMP_ENVELOPE",
+    step: "rejected",
+    version: MigrationRecordVersion,
+    reason_code: "policy_forbidden",
+    reason,
+    migration_notice: notice,
+  };
 }

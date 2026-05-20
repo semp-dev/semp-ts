@@ -2,9 +2,9 @@
  * Local-part lockout registry per MIGRATION.md §6.
  *
  * After a cooperative migration finalizes, the old provider MUST
- * lock out the old local-part for the duration of the forwarding
+ * lock out the old local-part for the duration of the notice
  * window so a different account cannot be reassigned the old
- * address while forwarding is still expected to honor it.
+ * address while the migration notice is still being served.
  *
  * @module
  */

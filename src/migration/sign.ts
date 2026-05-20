@@ -25,10 +25,10 @@ import {
   type MigrationMode,
   type MigrationRecord,
   type MigrationSignatureBlock,
-  MaxForwardingWindowMs,
+  MaxNoticeWindowMs,
   MigrationPrefix,
   MigrationRecordType,
-  MinForwardingWindowMs,
+  MinNoticeWindowMs,
   SignatureAlgorithmEd25519,
 } from "./types.js";
 
@@ -243,22 +243,22 @@ export function validateMigrationRecord(r: MigrationRecord): void {
     throw new Error(`migration: mode ${JSON.stringify(r.mode)} is invalid`);
   }
   if (r.mode === "cooperative") {
-    if (typeof r.forwarding_window_until !== "string" || r.forwarding_window_until === "") {
-      throw new Error("migration: cooperative mode MUST set forwarding_window_until");
+    if (typeof r.notice_window_until !== "string" || r.notice_window_until === "") {
+      throw new Error("migration: cooperative mode MUST set notice_window_until");
     }
-    const untilMs = Date.parse(r.forwarding_window_until);
+    const untilMs = Date.parse(r.notice_window_until);
     if (Number.isNaN(untilMs)) {
-      throw new Error("migration: forwarding_window_until is not ISO 8601");
+      throw new Error("migration: notice_window_until is not ISO 8601");
     }
     const window = untilMs - migratedMs;
-    if (window < MinForwardingWindowMs) {
+    if (window < MinNoticeWindowMs) {
       throw new Error(
-        `migration: cooperative forwarding window ${window} below minimum ${MinForwardingWindowMs}`,
+        `migration: cooperative notice window ${window} below minimum ${MinNoticeWindowMs}`,
       );
     }
-    if (window > MaxForwardingWindowMs) {
+    if (window > MaxNoticeWindowMs) {
       throw new Error(
-        `migration: cooperative forwarding window ${window} exceeds maximum ${MaxForwardingWindowMs}`,
+        `migration: cooperative notice window ${window} exceeds maximum ${MaxNoticeWindowMs}`,
       );
     }
   }

@@ -14,13 +14,12 @@ export {
   type MigrationNoticeRejection,
   type MigrationRecord,
   type MigrationSignatureBlock,
-  MaxForwardingWindowMs,
-  MigrationNoticeType,
+  MaxNoticeWindowMs,
   MigrationPrefix,
   MigrationRecordType,
   MigrationRecordVersion,
-  MinForwardingWindowMs,
-  RecommendedForwardingWindowMs,
+  MinNoticeWindowMs,
+  RecommendedNoticeWindowMs,
   SignatureAlgorithmEd25519,
 } from "./types.js";
 

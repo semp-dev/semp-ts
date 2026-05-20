@@ -14,9 +14,9 @@ import {
   type ThirdPartyPolicy,
   InMemoryLockoutRegistry,
   InMemoryPublicationStore,
-  MaxForwardingWindowMs,
-  MinForwardingWindowMs,
-  RecommendedForwardingWindowMs,
+  MaxNoticeWindowMs,
+  MinNoticeWindowMs,
+  RecommendedNoticeWindowMs,
   acceptSubmission,
   applyThirdPartyPolicy,
   buildMigrationNotice,
@@ -84,7 +84,7 @@ describe("composeMigrationRecord + verifyMigrationRecord", () => {
       mode: "cooperative",
       recordId: "01J7MIGRATE0000000000000",
       migratedAt: "2026-04-21T10:00:00Z",
-      forwardingWindowUntil: "2027-04-21T10:00:00Z", // 365d ≈ within bounds
+      noticeWindowUntil: "2027-04-21T10:00:00Z", // 365d ≈ within bounds
       oldAddress: "alice@old.example",
       newAddress: "alice@new.example",
       oldIdentityKeyId: k.oldIdKeyId,
@@ -128,7 +128,7 @@ describe("composeMigrationRecord + verifyMigrationRecord", () => {
       mode: "cooperative",
       recordId: "01J7MIGRATE0000000000000",
       migratedAt: "2026-04-21T10:00:00Z",
-      forwardingWindowUntil: "2027-04-21T10:00:00Z",
+      noticeWindowUntil: "2027-04-21T10:00:00Z",
       oldAddress: "alice@old.example",
       newAddress: "alice@new.example",
       oldIdentityKeyId: k.oldIdKeyId,
@@ -161,10 +161,10 @@ describe("composeMigrationRecord + verifyMigrationRecord", () => {
       newDomainPriv: k.newDomSeed,
       oldDomainKeyId: k.oldDomKeyId, // populated up front so canonical bytes are stable
       mode: "cooperative",
-      forwardingWindowMs: RecommendedForwardingWindowMs,
+      noticeWindowMs: RecommendedNoticeWindowMs,
       migratedAt: "2026-04-21T10:00:00Z",
     });
-    // Three signatures present, fourth empty — partial submission.
+    // Three signatures present, fourth empty - partial submission.
     expect(r.old_domain_signature?.value).toBe("");
     expect(verifyMigrationPass(r, 0, k.oldIdPub)).toBe(true);
     expect(verifyMigrationPass(r, 1, k.newIdPub)).toBe(true);
@@ -173,15 +173,15 @@ describe("composeMigrationRecord + verifyMigrationRecord", () => {
 });
 
 describe("validateMigrationRecord", () => {
-  test("rejects below-min forwarding window in cooperative mode", () => {
+  test("rejects below-min notice window in cooperative mode", () => {
     const r = stubRecord();
-    r.forwarding_window_until = "2026-05-01T10:00:00Z"; // 10 days < 30
+    r.notice_window_until = "2026-05-01T10:00:00Z"; // 10 days < 30
     expect(() => validateMigrationRecord(r)).toThrow(/below minimum/);
   });
 
-  test("rejects above-max forwarding window", () => {
+  test("rejects above-max notice window", () => {
     const r = stubRecord();
-    r.forwarding_window_until = "2030-04-21T10:00:00Z"; // 4 years > 2
+    r.notice_window_until = "2030-04-21T10:00:00Z"; // 4 years > 2
     expect(() => validateMigrationRecord(r)).toThrow(/exceeds maximum/);
   });
 
@@ -194,7 +194,7 @@ describe("validateMigrationRecord", () => {
   test("unilateral record forbids old_domain_signature", () => {
     const r = stubRecord();
     r.mode = "unilateral";
-    r.forwarding_window_until = null;
+    r.notice_window_until = null;
     r.old_domain_signature = { algorithm: "ed25519", key_id: "x", value: "AAA=" };
     expect(() => validateMigrationRecord(r)).toThrow(
       /unilateral record MUST NOT carry/,
@@ -254,7 +254,7 @@ describe("buildSubmission + acceptSubmission", () => {
       newDomainPriv: k.newDomSeed,
       oldDomainKeyId: k.oldDomKeyId,
       mode: "cooperative",
-      forwardingWindowMs: RecommendedForwardingWindowMs,
+      noticeWindowMs: RecommendedNoticeWindowMs,
       migratedAt: "2026-04-21T10:00:00Z",
     });
     expect(submission.old_domain_signature?.value).toBe("");
@@ -311,7 +311,7 @@ describe("buildSubmission + acceptSubmission", () => {
     ).rejects.toThrow(/cooperative/);
   });
 
-  test("forwarding policy hook can refuse the submission", async () => {
+  test("notice policy hook can refuse the submission", async () => {
     const k = buildKeys();
     const r = buildSubmission(stubBuildSubmission(k));
     await expect(
@@ -322,7 +322,7 @@ describe("buildSubmission + acceptSubmission", () => {
         oldDomainPriv: k.oldDomSeed,
         oldDomainKeyId: k.oldDomKeyId,
         now: new Date("2026-04-21T10:30:00Z"),
-        forwardingPolicy: () => {
+        noticePolicy: () => {
           throw new Error("policy refused");
         },
       }),
@@ -369,37 +369,43 @@ describe("MigrationNotice + rejection", () => {
     const r = stubRecord();
     const notice = buildMigrationNotice({
       record: r,
-      recordUrlPattern: "https://old.example/migration/{record_id}",
-      noticeId: "01J7NOTICE000000000",
-      nowFn: () => new Date("2026-04-21T10:00:00Z"),
+      recordUrlPattern: "https://old.example/migration/<record_id>",
     });
-    expect(notice.type).toBe("SEMP_MIGRATION_NOTICE");
-    expect(notice.record_url).toBe(
-      `https://old.example/migration/${encodeURIComponent(r.record_id)}`,
-    );
-    expect(notice.old_address).toBe(r.old_address);
     expect(notice.new_address).toBe(r.new_address);
-    expect(notice.issued_at).toBe("2026-04-21T10:00:00Z");
+    expect(notice.migration_record_id).toBe(r.record_id);
+    expect(notice.migration_record_url).toBe(
+      `https://old.example/migration/${r.record_id}`,
+    );
   });
 
-  test("buildMigrationNotice rejects URL pattern without placeholder", () => {
-    expect(() =>
-      buildMigrationNotice({
-        record: stubRecord(),
-        recordUrlPattern: "https://old.example/migration/",
-      }),
-    ).toThrow(/placeholder/);
+  test("buildMigrationNotice omits migration_record_url when pattern is empty", () => {
+    const notice = buildMigrationNotice({ record: stubRecord() });
+    expect(notice.migration_record_url).toBeUndefined();
   });
 
-  test("newMigrationNoticeRejection wraps a notice with a reason", () => {
+  test("buildMigrationNotice uses pattern verbatim when no placeholder present", () => {
     const r = stubRecord();
     const notice = buildMigrationNotice({
       record: r,
-      recordUrlPattern: "https://old.example/migration/{record_id}",
+      recordUrlPattern: "https://old.example/migration/fixed",
     });
-    const rejection = newMigrationNoticeRejection(notice, "policy");
-    expect(rejection.notice).toBe(notice);
-    expect(rejection.reason).toBe("policy");
+    expect(notice.migration_record_url).toBe(
+      "https://old.example/migration/fixed",
+    );
+  });
+
+  test("newMigrationNoticeRejection wraps a notice in the §5.3 rejection shape", () => {
+    const r = stubRecord();
+    const notice = buildMigrationNotice({
+      record: r,
+      recordUrlPattern: "https://old.example/migration/<record_id>",
+    });
+    const rejection = newMigrationNoticeRejection(notice, "Recipient has migrated.");
+    expect(rejection.type).toBe("SEMP_ENVELOPE");
+    expect(rejection.step).toBe("rejected");
+    expect(rejection.reason_code).toBe("policy_forbidden");
+    expect(rejection.reason).toBe("Recipient has migrated.");
+    expect(rejection.migration_notice).toBe(notice);
   });
 });
 
@@ -471,7 +477,7 @@ function stubRecord(): MigrationRecord {
     new_identity_key_id: "new-fp",
     new_identity_public_key: "AAAA",
     migrated_at: "2026-04-21T10:00:00Z",
-    forwarding_window_until: "2027-04-21T10:00:00Z", // 365 days
+    notice_window_until: "2027-04-21T10:00:00Z", // 365 days
     mode: "cooperative",
     old_identity_signature: {
       algorithm: "ed25519",
@@ -509,11 +515,11 @@ function stubBuildSubmission(k: FullChainKeys) {
     newDomainPriv: k.newDomSeed,
     oldDomainKeyId: k.oldDomKeyId,
     mode: "cooperative" as const,
-    forwardingWindowMs: RecommendedForwardingWindowMs,
+    noticeWindowMs: RecommendedNoticeWindowMs,
     migratedAt: "2026-04-21T10:00:00Z",
   };
 }
 
 // Keep imports active.
-void MinForwardingWindowMs;
-void MaxForwardingWindowMs;
+void MinNoticeWindowMs;
+void MaxNoticeWindowMs;

@@ -1,6 +1,6 @@
 /**
  * Wire-record types and constants for SEMP_MIGRATION per
- * MIGRATION.md §3.
+ * MIGRATION.md §3 and §5.
  *
  * @module
  */
@@ -12,22 +12,19 @@ export const MigrationRecordVersion = "1.0.0";
 /** Domain-separation prefix per ENVELOPE.md §4.3. */
 export const MigrationPrefix = "SEMP-MIGRATION-RECORD:";
 
-/** Notice message type per §4. */
-export const MigrationNoticeType = "SEMP_MIGRATION_NOTICE";
-
 /** Migration mode per §2. */
 export type MigrationMode = "cooperative" | "unilateral";
 
 /**
- * Forwarding window bounds per §5.1, in milliseconds.
+ * Notice window bounds per §5.1, in milliseconds.
  *
  *  - Min:         30 days  (cooperative servers MUST NOT accept below this)
  *  - Recommended: 180 days
  *  - Max:         730 days (~2 years; servers MAY decline above this)
  */
-export const MinForwardingWindowMs = 30 * 24 * 60 * 60 * 1000;
-export const RecommendedForwardingWindowMs = 180 * 24 * 60 * 60 * 1000;
-export const MaxForwardingWindowMs = 730 * 24 * 60 * 60 * 1000;
+export const MinNoticeWindowMs = 30 * 24 * 60 * 60 * 1000;
+export const RecommendedNoticeWindowMs = 180 * 24 * 60 * 60 * 1000;
+export const MaxNoticeWindowMs = 730 * 24 * 60 * 60 * 1000;
 
 /** Only signature algorithm currently defined for migration records. */
 export const SignatureAlgorithmEd25519 = "ed25519";
@@ -53,10 +50,16 @@ export interface MigrationRecord {
   /** ISO 8601 UTC. */
   migrated_at: string;
   /**
-   * ISO 8601 UTC, or null when no forwarding is offered (typical
-   * for unilateral mode where the old provider is non-cooperative).
+   * ISO 8601 UTC end of the migration notice window. During this
+   * window the old provider returns policy_forbidden with a
+   * migration_notice body and key fetches carry a migration_to
+   * field. After the window the old provider stops returning the
+   * notice and handles the old address the same way it handles
+   * non-existent addresses. Null when no notice window is offered
+   * (typical for unilateral mode where the old provider is
+   * non-cooperative).
    */
-  forwarding_window_until: string | null;
+  notice_window_until: string | null;
   mode: MigrationMode;
 
   old_identity_signature: MigrationSignatureBlock;
@@ -74,30 +77,32 @@ export interface MigrationRecord {
 }
 
 /**
- * SEMP_MIGRATION_NOTICE message a server sends to inform a sender
- * that the recipient has migrated. Per §4.
+ * Migration notice body field attached to a policy_forbidden
+ * envelope rejection emitted by the old provider during the
+ * migration notice window per §5.3. The sender's client surfaces
+ * the new_address to the user and offers an address-book update;
+ * the client MUST NOT auto-redirect correspondence.
  */
 export interface MigrationNotice {
-  type: typeof MigrationNoticeType;
-  version: string;
-  /** ULID for the notice. */
-  notice_id: string;
-  /** Reference to the published migration record. */
-  record_id: string;
-  /** URL where the migration record can be fetched. */
-  record_url: string;
-  /** Old address (the one the sender attempted to deliver to). */
-  old_address: string;
-  /** New address the sender SHOULD redirect to. */
+  /** Address the sender SHOULD redirect to after user confirmation. */
   new_address: string;
-  /** Migration mode (informational). */
-  mode: MigrationMode;
-  /** ISO 8601 UTC timestamp the notice was issued. */
-  issued_at: string;
+  /** ULID of the published migration record. */
+  migration_record_id: string;
+  /** Optional URL where the migration record can be fetched. */
+  migration_record_url?: string;
 }
 
-/** Rejection wrapper a sender returns when it refuses to honor a notice. */
+/**
+ * Envelope-rejection wire shape carrying a {@link MigrationNotice}
+ * body. The old provider's HTTP layer emits this as the
+ * SEMP_ENVELOPE step=rejected response for envelopes addressed to
+ * a migrated address during the notice window per §5.3.
+ */
 export interface MigrationNoticeRejection {
-  notice: MigrationNotice;
+  type: "SEMP_ENVELOPE";
+  step: "rejected";
+  version: string;
+  reason_code: "policy_forbidden";
   reason: string;
+  migration_notice: MigrationNotice;
 }
