@@ -16,6 +16,7 @@ export {
   type DisclosureAuthorization,
   type DisclosureScope,
   type Evidence,
+  type EvidenceHash,
   type GossipHash,
   type Metrics,
   type Observation,
@@ -24,13 +25,35 @@ export {
   type TrustObservations,
   type Window,
   AbuseReportType,
+  MaxEvidenceBytes,
   MaxMetricBucket,
+  MaxObservationBytes,
   ObservationType,
   ObservationsEnvelopeType,
   PublicationPath,
   Version,
   isKnownAbuseCategory,
 } from "./types.js";
+
+export {
+  EvidenceHashMismatchError,
+  ObservationOversizedError,
+  checkObservationSize,
+  validateEvidenceFields,
+  verifyEvidenceBytes,
+} from "./evidence.js";
+
+export {
+  MinPublishVolumeEnvelopes,
+  allMetricsZero,
+  eligibleForPublication,
+  meetsPublishVolume,
+} from "./eligibility.js";
+
+export {
+  CredibilityLedger,
+  DefaultCredibility,
+} from "./credibility.js";
 
 export {
   applyBucketing,

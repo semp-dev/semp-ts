@@ -16,7 +16,15 @@ export const PublicationPath = "/.well-known/semp/reputation/";
 /** Assessment classification per §4.6. */
 export type Assessment = "trusted" | "neutral" | "suspicious" | "hostile";
 
-/** Abuse category per §3.4 + ERRORS.md §9. */
+/**
+ * Abuse category per §3.4 + ERRORS.md §9.
+ *
+ * `observation_record_abuse` covers misbehavior in the trust-
+ * gossip observation records themselves: oversized records,
+ * evidence-hash mismatches, hostile or non-conforming evidence_uri
+ * content, fabricated metrics, and systematic publication of
+ * unverifiable assessments.
+ */
 export type AbuseCategory =
   | "spam"
   | "harassment"
@@ -24,6 +32,7 @@ export type AbuseCategory =
   | "malware"
   | "protocol_abuse"
   | "impersonation"
+  | "observation_record_abuse"
   | "other";
 
 /**
@@ -38,6 +47,7 @@ export function isKnownAbuseCategory(c: string): c is AbuseCategory {
     case "malware":
     case "protocol_abuse":
     case "impersonation":
+    case "observation_record_abuse":
     case "other":
       return true;
     default:
@@ -74,6 +84,20 @@ export interface Metrics {
 /** Cap applied by Bucketize: counts at/above this clamp here. */
 export const MaxMetricBucket = 1 << 20;
 
+/**
+ * Binds the bytes returned by an observation's `evidence_uri` to
+ * the signed observation record per REPUTATION.md §4.2 / §5.5.1.
+ * Consumers MUST compute the digest of the fetched bytes under
+ * `algorithm` and MUST treat a mismatch as a verification failure
+ * equivalent to a signature failure.
+ */
+export interface EvidenceHash {
+  /** Digest algorithm identifier. "sha-256" is the only value currently defined. */
+  algorithm: string;
+  /** Base64-encoded digest of the evidence bytes. */
+  value: string;
+}
+
 /** Single signed observation record per §4.2. */
 export interface Observation {
   type: typeof ObservationType;
@@ -85,7 +109,17 @@ export interface Observation {
   metrics: Metrics;
   assessment: Assessment;
   evidence_available: boolean;
+  /**
+   * URL where evidence can be fetched. REQUIRED when
+   * `evidence_available` is true; MUST be absent when false.
+   */
   evidence_uri?: string;
+  /**
+   * Digest binding fetched evidence to the signed observation per
+   * §5.5.1. REQUIRED when `evidence_available` is true; MUST be
+   * absent when false.
+   */
+  evidence_hash?: EvidenceHash;
   /** ISO 8601 UTC. */
   timestamp: string;
   /** ISO 8601 UTC hard expiry. */
@@ -94,6 +128,21 @@ export interface Observation {
   /** Always emitted (even when empty) so canonical bytes are stable. */
   extensions: Record<string, unknown>;
 }
+
+/**
+ * §4.6.1 hard upper bound on the canonical UTF-8 JSON form of a
+ * single SEMP_TRUST_OBSERVATION record. Servers MUST reject larger
+ * records as malformed and MUST NOT propagate them.
+ */
+export const MaxObservationBytes = 16384;
+
+/**
+ * §5.5.2 RECOMMENDED upper bound on a single evidence-fetch
+ * response body. Operators MAY tighten further via local
+ * configuration; consumers MUST cap their fetch at a
+ * locally-configured limit.
+ */
+export const MaxEvidenceBytes = 1024 * 1024;
 
 /** Publication envelope carrying a list of observations per §5.1. */
 export interface TrustObservations {
