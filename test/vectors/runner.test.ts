@@ -93,6 +93,22 @@ import {
   handleSealRoundtrip,
 } from "./handlers-wave5.js";
 
+import {
+  handleExtensionDefinitionDocumentURL,
+  handleHTTP2UrlTemplates,
+  handleKeyFetchStatusDispatch,
+  handleMigrationKeyFetchRedirect,
+  handleMigrationNotice,
+  handlePersistentSilentCounter,
+  handlePoWDifficultyCalibration,
+  handleReciprocityPolicy,
+  handleReputationReferences,
+  handleSRVQuicUdpTarget,
+  handleStatusConfig,
+  handleTrustObservation,
+  handleValidationFailures,
+} from "./handlers-decisions.js";
+
 type Handler = (entry: VectorEntry) => void;
 
 /**
@@ -100,22 +116,64 @@ type Handler = (entry: VectorEntry) => void;
  * Categories without a handler get a `test.skip` per entry so the
  * coverage gap is visible.
  */
+// Sub-dispatch wrappers for handlers that gained new spec-defined
+// vector ids in the LIBRARY_REVIEW decision pass. The wrapper
+// routes the new ids to handlers-decisions.ts and falls back to
+// the original handler for unknown ids.
+function handlePoWAll(entry: VectorEntry): void {
+  if (entry.id === "pow-difficulty-calibration-table") {
+    handlePoWDifficultyCalibration(entry);
+    return;
+  }
+  handlePoW(entry);
+}
+function handleDeliveryStatusAll(entry: VectorEntry): void {
+  if (entry.id === "persistent-silent-counter-behavior") {
+    handlePersistentSilentCounter(entry);
+    return;
+  }
+  handleDeliveryStatus(entry);
+}
+function handleDiscoveryAll(entry: VectorEntry): void {
+  switch (entry.id) {
+    case "discovery-srv-quic-udp-target":
+      return handleSRVQuicUdpTarget(entry);
+    case "discovery-config-reciprocity-policy":
+      return handleReciprocityPolicy(entry);
+    case "key-fetch-status-dispatch":
+      return handleKeyFetchStatusDispatch(entry);
+    case "http2-url-templates":
+      return handleHTTP2UrlTemplates(entry);
+    case "migration-key-fetch-redirect":
+      return handleMigrationKeyFetchRedirect(entry);
+    default:
+      return handleDiscovery(entry);
+  }
+}
+function handleExtensionEntriesAll(entry: VectorEntry): void {
+  if (entry.id === "extension-definition-document-url") {
+    handleExtensionDefinitionDocumentURL(entry);
+    return;
+  }
+  handleExtensionEntries(entry);
+}
+
 const dispatch: Record<string, Handler> = {
   // Layer 1 (cryptographic primitives).
   hkdf: handleHKDF,
   "session-mac": handleSessionMAC,
   "confirmation-hash": handleConfirmationHash,
-  pow: handlePoW,
+  pow: handlePoWAll,
 
   // Layer 2 (deterministic protocol logic).
   "envelope-canonical": handleEnvelopeCanonical,
   "envelope-buckets": handleEnvelopeBuckets,
-  discovery: handleDiscovery,
+  discovery: handleDiscoveryAll,
   "rejection-codes": handleRejectionCodes,
-  "extension-entries": handleExtensionEntries,
+  "extension-entries": handleExtensionEntriesAll,
   "clock-tolerance": handleClockTolerance,
   "session-lifecycle": handleSessionLifecycle,
-  "delivery-status": handleDeliveryStatus,
+  "delivery-status": handleDeliveryStatusAll,
   "device-certificates": handleDeviceCertificates,
   "key-revocation": handleKeyRevocation,
   "recipient-status": handleRecipientStatus,
@@ -146,6 +204,13 @@ const dispatch: Record<string, Handler> = {
   "large-attachment": handleLargeAttachment,
   "seal-roundtrip": handleSealRoundtrip,
   "envelope-roundtrip": handleEnvelopeRoundtrip,
+
+  // LIBRARY_REVIEW decision pass: new vector categories.
+  "migration-notice": handleMigrationNotice,
+  "reputation-references": handleReputationReferences,
+  "status-config": handleStatusConfig,
+  "trust-observation": handleTrustObservation,
+  "validation-failures": handleValidationFailures,
 };
 
 // Suppress unused warnings until later waves reach for these.
