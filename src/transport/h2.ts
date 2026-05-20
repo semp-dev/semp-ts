@@ -1,18 +1,18 @@
 /**
  * HTTP/2 transport binding per TRANSPORT.md §4.2.
  *
- * Unlike WebSocket — which gives us a single bidirectional pipe —
+ * Unlike WebSocket, which gives us a single bidirectional pipe,
  * the SEMP HTTP/2 binding is a collection of HTTP endpoints with
  * path-based routing:
  *
- *  - `POST /v1/discovery`     — discovery lookup
- *  - `POST /v1/keys`          — key request
- *  - `POST /v1/handshake`     — handshake step
- *  - `POST /v1/envelope`      — envelope submit
- *  - `POST /v1/session/{id}`  — long-lived bidirectional session
- *                                stream (server pushes via SSE,
- *                                client posts additional messages
- *                                to the same URL)
+ *  - `GET  /v1/discovery/{address}` - discovery lookup (preferred)
+ *  - `POST /v1/discovery/{address}` - same lookup with a signed body
+ *  - `GET  /v1/keys/{address}`      - key request (preferred)
+ *  - `POST /v1/keys/{address}`      - same lookup with a signed body
+ *  - `POST /v1/handshake`           - handshake step
+ *  - `POST /v1/envelope`            - envelope submit
+ *  - `GET  /v1/session/{id}`        - long-lived server-push stream
+ *                                     (Server-Sent Events)
  *
  * This module exposes:
  *
@@ -33,6 +33,37 @@ import type { DialOptions, Transport } from "./transport.js";
 
 /** Header name the server sets on its response to handshake init. */
 export const SempSessionIdHeader = "Semp-Session-Id";
+
+/** Path constants for the HTTP/2 binding per TRANSPORT.md §4.2.1. */
+export const PathDiscovery = "/v1/discovery";
+export const PathKeys = "/v1/keys";
+export const PathHandshake = "/v1/handshake";
+export const PathEnvelope = "/v1/envelope";
+export const PathSession = "/v1/session/";
+
+/**
+ * Build the GET-lookup URL path for a discovery lookup per
+ * TRANSPORT.md §4.2.1: `/v1/discovery/{address}`.
+ */
+export function discoveryPath(address: string): string {
+  return `${PathDiscovery}/${address}`;
+}
+
+/**
+ * Build the GET-lookup URL path for a key request per
+ * TRANSPORT.md §4.2.1: `/v1/keys/{address}`.
+ */
+export function keysPath(address: string): string {
+  return `${PathKeys}/${address}`;
+}
+
+/**
+ * Build the GET-stream URL path for a session id per
+ * TRANSPORT.md §4.2.4: `/v1/session/{id}`.
+ */
+export function sessionPath(sessionId: string): string {
+  return `${PathSession}${sessionId}`;
+}
 
 /**
  * Minimal subset of the WHATWG fetch surface this module depends on.
@@ -172,7 +203,7 @@ export interface DialH2SessionOptions extends DialOptions {
   /** Override the fetch implementation. Defaults to `globalThis.fetch`. */
   fetchImpl?: H2FetchLike;
   /**
-   * URL of the session endpoint, including the session id segment —
+   * URL of the session endpoint, including the session id segment -
    * for example `https://semp.example.com/v1/session/01J...`. The
    * caller composes this from the configuration's
    * `endpoints.client.h2` base + the session id.
@@ -292,7 +323,7 @@ export async function dialH2Session(
  * The encoder normalizes CR / CRLF line terminators to LF before
  * emitting each `data:` line. SEMP payloads are JSON documents whose
  * control bytes are escaped (`\r`, `\n`), so the wire form never
- * actually carries a literal CR or LF — but be defensive.
+ * actually carries a literal CR or LF - but be defensive.
  */
 export function encodeSSE(message: string): string {
   const lines = splitSSELines(message);
@@ -331,7 +362,7 @@ function splitSSELines(s: string): string[] {
 /**
  * Decode SSE events from a string buffer. Each call returns the next
  * complete event's `data` payload (or `null` if no complete event is
- * buffered yet). Stateful — the buffer accumulates partial input.
+ * buffered yet). Stateful - the buffer accumulates partial input.
  */
 export class SSEDecoder {
   private buffer = "";
@@ -363,10 +394,10 @@ export class SSEDecoder {
           this.dataLines = [];
           return event;
         }
-        // Empty leading lines (keepalives) — skip.
+        // Empty leading lines (keepalives) - skip.
         continue;
       }
-      // Comment lines start with ":" — ignore.
+      // Comment lines start with ":" - ignore.
       if (line.startsWith(":")) {
         continue;
       }
