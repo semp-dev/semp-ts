@@ -20,3 +20,11 @@ export {
   validateKey,
   validateSize,
 } from "./limits.js";
+
+export {
+  type ValidationFailureCode,
+  type ValidationFailureItem,
+  type ValidationFailureRejection,
+  DefinitionPathPrefix,
+  newValidationFailureRejection,
+} from "./validation_failure.js";
