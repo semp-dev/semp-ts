@@ -4,8 +4,8 @@
  * The two currently defined algorithm suites use different AEAD
  * variants:
  *
- *   - `x25519-chacha20-poly1305` — ChaCha20-Poly1305, 12-byte nonce.
- *   - `pq-kyber768-x25519`       — XChaCha20-Poly1305, 24-byte nonce.
+ *   - `x25519-chacha20-poly1305` - ChaCha20-Poly1305, 12-byte nonce.
+ *   - `pq-kyber768-x25519`       - XChaCha20-Poly1305, 24-byte nonce.
  *
  * The sealing flow is identical in both cases: AEAD.Seal(key, nonce,
  * plaintext, aad) -> ciphertext || tag. Returns a single byte slice

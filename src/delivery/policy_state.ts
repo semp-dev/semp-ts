@@ -8,7 +8,7 @@
  * rejects the whole message; unrelated operations in the same
  * message MUST NOT be applied.
  *
- * Apply does NOT verify the signature on the message — callers MUST
+ * Apply does NOT verify the signature on the message - callers MUST
  * run {@link verifyUserPolicyMessage} before invoking
  * {@link PolicyState.apply}.
  *
@@ -88,7 +88,7 @@ export interface PolicySnapshot {
  * Per-user policy state. Concurrency-safe within a single JS event
  * loop (no async mutation between read-modify-write).
  *
- * Does NOT enforce DELIVERY.md §7.5 encrypted-at-rest storage —
+ * Does NOT enforce DELIVERY.md §7.5 encrypted-at-rest storage -
  * that is the persistence layer's responsibility.
  */
 export class PolicyState {
@@ -195,7 +195,7 @@ export class PolicyState {
       });
     }
 
-    // Pre-flight every op for unsupported-kind before mutating —
+    // Pre-flight every op for unsupported-kind before mutating -
     // §7.2 atomicity.
     for (let i = 0; i < m.operations.length; i++) {
       const op = m.operations[i]!;
@@ -323,7 +323,7 @@ function entryIdFor(op: PolicyOperation): string {
  * not specific op-kind violations.
  *
  * The mapping leans on the validator's stable error-string format
- * (`delivery: user policy operations[N] ...`) — same approach as
+ * (`delivery: user policy operations[N] ...`) - same approach as
  * the semp-go reference.
  */
 function classifyOpInvalid(

@@ -144,7 +144,7 @@ export class InMemoryBundleStore implements BundleStore {
         }
         const ts = Date.parse(r.supersededAt);
         if (Number.isNaN(ts)) {
-          return true; // malformed — be conservative
+          return true; // malformed - be conservative
         }
         if (ts < cutoff) {
           pruned++;

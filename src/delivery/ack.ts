@@ -4,12 +4,12 @@
  * A recipient server returns exactly one of three acknowledgments
  * for every envelope delivery attempt:
  *
- *   - `delivered`  — accepted; carries a signed
+ *   - `delivered`  - accepted; carries a signed
  *     {@link "./receipt".DeliveryReceipt} per §1.1.1, MAY include a
  *     {@link RecipientStatus} per §1.6 if the sender matches the
  *     recipient's visibility rules.
- *   - `rejected`   — explicitly refused with a reason code per §1.2.
- *   - `silent`     — no response within the sender's timeout window
+ *   - `rejected`   - explicitly refused with a reason code per §1.2.
+ *   - `silent`     - no response within the sender's timeout window
  *     per §1.3. The wire form for silent is "no response sent at
  *     all"; this module exposes a constant value the sending server
  *     uses internally to record the outcome on its own queue state.
@@ -81,7 +81,7 @@ export const MaxStatusMessageBytes = 256;
  *   - acknowledgment="rejected" with `reason_code` populated and an
  *     optional `reason`.
  *
- * The `silent` outcome is not represented on the wire — the
+ * The `silent` outcome is not represented on the wire - the
  * recipient simply does not respond.
  */
 export interface DeliveryAck {
@@ -148,7 +148,7 @@ export interface SenderIdentity {
  *  - `nobody` (default): never disclose, regardless of the allow list.
  *  - `everyone`: always disclose, regardless of the allow list.
  *  - `domains` / `servers` / `users`: walk the allow list looking for
- *    a match. The mode constrains which entry kinds are honored — in
+ *    a match. The mode constrains which entry kinds are honored - in
  *    `domains` mode only entries with `type: "domain"`, etc.
  *    Mismatched entries in the allow list are ignored.
  *
@@ -175,7 +175,7 @@ export function matchVisibility(
     case "users":
       break;
     default:
-      // Unknown mode — fail closed.
+      // Unknown mode - fail closed.
       return false;
   }
 
@@ -220,7 +220,7 @@ export function matchVisibility(
         }
         break;
       default:
-        // Unknown entry type — skip.
+        // Unknown entry type - skip.
         break;
     }
   }

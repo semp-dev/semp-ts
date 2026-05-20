@@ -1,5 +1,5 @@
 /**
- * Tests for {@link PolicyState} — the per-user authoritative policy
+ * Tests for {@link PolicyState} - the per-user authoritative policy
  * view per DELIVERY.md §7.2.
  *
  * @module

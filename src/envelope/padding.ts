@@ -55,7 +55,7 @@ export interface PadConfig {
 /**
  * Populate `env.padding` so that `JSON.stringify(env)` lands on
  * exactly the size of the chosen bucket. Safe to call before OR
- * after `compose` populates `seal.signature` / `seal.session_mac` —
+ * after `compose` populates `seal.signature` / `seal.session_mac` -
  * if either is empty, fillPadding temporarily substitutes a
  * fixed-length placeholder for measurement so the post-sign size
  * is correct either way.
@@ -116,7 +116,7 @@ export function fillPadding(env: Envelope, cfg: PadConfig = {}): number {
 /**
  * Build a string of exactly `targetLen` base64-alphabet characters,
  * drawn from a CSPRNG. The bulk is a base64 encoding of CSPRNG
- * bytes; the final 1–3 characters (when targetLen is not reachable
+ * bytes; the final 1-3 characters (when targetLen is not reachable
  * by `btoa` 4-character chunks) are CSPRNG-seeded alphabet
  * characters appended for length alignment per §2.4.2.
  */
@@ -132,7 +132,7 @@ export function buildPaddingValue(
   }
   // base64 emits 4 chars per 3 input bytes. Pick the largest
   // multiple of 4 ≤ targetLen as the base64-encoded portion; the
-  // remainder (0–3 chars) is filled from the alphabet pool.
+  // remainder (0-3 chars) is filled from the alphabet pool.
   const baseChars = targetLen - (targetLen % 4);
   const inputBytes = (baseChars / 4) * 3;
   const out: string[] = [];

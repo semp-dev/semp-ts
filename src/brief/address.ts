@@ -59,7 +59,7 @@ export function addressDomain(addr: string): string {
 /**
  * Validate `addr` against the canonical wire form per §2.3:
  *
- *  - Non-empty, valid UTF-8 (always true for JS strings — included
+ *  - Non-empty, valid UTF-8 (always true for JS strings - included
  *    for symmetry with semp-go).
  *  - Composed length ≤ {@link MaxAddressLength} bytes.
  *  - No control characters (C0, DEL, C1).

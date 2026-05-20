@@ -36,7 +36,7 @@ export interface FetchTrustObservationsOptions {
   /** Optional cancellation signal. */
   signal?: AbortSignal;
   /**
-   * Per-request timeout in milliseconds. Defaults to 10 seconds —
+   * Per-request timeout in milliseconds. Defaults to 10 seconds -
    * matches `discovery.fetchConfiguration`.
    */
   timeoutMs?: number;
@@ -58,7 +58,7 @@ export interface FetchTrustObservationsOptions {
  * return the parsed envelope.
  *
  * Per-observation signatures inside `result.observations` are NOT
- * verified — callers walk those and call
+ * verified - callers walk those and call
  * {@link "./sign".verifyObservation} on each, because different
  * observations in the same envelope MAY be signed under different
  * key_ids (e.g. after a key rotation).

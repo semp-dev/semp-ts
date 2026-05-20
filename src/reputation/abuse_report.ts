@@ -3,7 +3,7 @@
  * §3.7.
  *
  * Abuse reports flow user → home-server over an authenticated
- * session — the handshake identifies the reporting user so the
+ * session - the handshake identifies the reporting user so the
  * report itself does NOT carry its own signature. The report's
  * evidence MAY include decrypted envelope fragments, in which case
  * an embedded {@link DisclosureAuthorization} signed by the
@@ -82,7 +82,7 @@ export function newAbuseReport(input: AbuseReportInput): AbuseReport {
 
 /**
  * Lookup hook used by {@link validateEvidence} to resolve a user's
- * identity public key. Returning `null` means "unknown user" —
+ * identity public key. Returning `null` means "unknown user" -
  * callers MUST treat that as a §3.7 verification failure.
  */
 export type UserKeyLookup = (user: string) => Promise<Uint8Array | null>;
@@ -92,7 +92,7 @@ export type UserKeyLookup = (user: string) => Promise<Uint8Array | null>;
  * content requires a valid {@link DisclosureAuthorization} signed
  * by the affected user.
  *
- * Metadata-only evidence is always acceptable — postmark + seal
+ * Metadata-only evidence is always acceptable - postmark + seal
  * data is verifiable from the sender's published domain key without
  * disclosing user content.
  *

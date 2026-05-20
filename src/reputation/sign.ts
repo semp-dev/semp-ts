@@ -2,7 +2,7 @@
  * Sign / verify primitives for reputation wire records per
  * REPUTATION.md §4.2 + §3.5 + §5.
  *
- * Reputation records use a NO-PREFIX signing input — the canonical
+ * Reputation records use a NO-PREFIX signing input - the canonical
  * bytes with `signature.value` elided are signed directly under
  * Ed25519. Other SEMP records use SEMP-* domain-separation
  * prefixes (registered in ENVELOPE.md §4.3) but reputation ones do
@@ -188,7 +188,7 @@ export function authAllowsEnclosure(auth: DisclosureAuthorization): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// AbuseReport — sent over an authenticated session, no own signature
+// AbuseReport - sent over an authenticated session, no own signature
 
 /** Structural validation of an {@link AbuseReport} per §3.2. Throws on first violation. */
 export function validateAbuseReport(r: AbuseReport): void {

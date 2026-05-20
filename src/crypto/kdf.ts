@@ -15,7 +15,7 @@ import { sha512 } from "@noble/hashes/sha2.js";
 /**
  * Per-key HKDF info labels for the five session keys derived from
  * the initial-handshake PRK. Per VECTORS.md §2.2, the rekey
- * derivation reuses these same labels — cross-context separation
+ * derivation reuses these same labels - cross-context separation
  * comes from the salt change (rekey nonces vs handshake nonces),
  * not from a different label namespace.
  */

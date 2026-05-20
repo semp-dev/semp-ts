@@ -1,7 +1,7 @@
 /**
  * Per-key revocation primitives per KEY.md §8.
  *
- * The published wire shape is `SEMP_KEY_REVOCATION` — a list of
+ * The published wire shape is `SEMP_KEY_REVOCATION` - a list of
  * revoked keys signed by the publishing party (a domain or a user).
  * The signature uses the `SEMP-REVOCATION:` domain-separation
  * prefix per ENVELOPE.md §4.3.
@@ -36,7 +36,7 @@ export interface PublicationSignature {
 }
 
 /**
- * Per-key revocation record per §8.4 — embedded in a key response
+ * Per-key revocation record per §8.4 - embedded in a key response
  * or in a {@link RevocationPublication}.
  */
 export interface Revocation {

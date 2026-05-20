@@ -37,7 +37,7 @@ function base64(bytes: Uint8Array): string {
 
 const FAST_KDF = {
   algorithm: "argon2id",
-  // Use 64 KiB / t=2 / p=1 — meets §2.5 minima but stays fast in tests.
+  // Use 64 KiB / t=2 / p=1 - meets §2.5 minima but stays fast in tests.
   salt: base64(new Uint8Array(16).fill(0x42)),
   memory_kb: 65_536,
   iterations: 2,

@@ -9,7 +9,7 @@
  *      Signed scope: the `original_enclosure_plaintext` subtree.
  *
  *   2. The FORWARDER's `forwarder_attestation` over the
- *      `forwarded_from` block — the inner sender_signature is
+ *      `forwarded_from` block - the inner sender_signature is
  *      already populated by step 1, so this signs over canonical
  *      bytes that include it. Prefix: `SEMP-FORWARDER-ATTESTATION:`.
  *      Signed scope: the entire `forwarded_from` subtree.

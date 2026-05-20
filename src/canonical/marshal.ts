@@ -37,11 +37,11 @@ export function marshal(v: unknown): Uint8Array {
 /**
  * Apply an in-place elision callback to a deep copy of `v`, then
  * canonicalize. The elider can mutate `map[string]any` / `any[]`
- * structures freely — the original is untouched.
+ * structures freely - the original is untouched.
  *
  * Use case: envelope canonicalization sets `seal.signature` and
  * `seal.session_mac` to "", omits `postmark.hop_count`, omits
- * `padding` — all by mutating the deep copy before serialization.
+ * `padding` - all by mutating the deep copy before serialization.
  */
 export function marshalWithElision(
   v: unknown,

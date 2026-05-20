@@ -60,7 +60,7 @@ export interface KeysRequest {
   type: typeof KeysRequestType;
   step: "request";
   version: string;
-  /** ULID for the request — used to correlate the response. */
+  /** ULID for the request - used to correlate the response. */
   id: string;
   /** ISO 8601 UTC. */
   timestamp: string;

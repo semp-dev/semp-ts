@@ -50,7 +50,7 @@ export function deriveAttachmentKey(
  * AEAD additional-data input bound into each attachment's
  * ciphertext per §3.2: canonical UTF-8 JSON of the item with
  * `ciphertext_hash`, `aead_nonce`, and `extensions` set to empty
- * values (`""`, `""`, `{}` — but `extensions` is dropped by the
+ * values (`""`, `""`, `{}` - but `extensions` is dropped by the
  * canonicalizer when it's the optional `extensions` field).
  *
  * Binding the metadata into AAD prevents an attacker from swapping
@@ -133,7 +133,7 @@ export function validateUrl(raw: string): void {
   // URL may still reveal them. We accept IPv6 if it parses as an IP
   // and contains ':'.
   if (looksLikeIPv6(host)) {
-    return; // IPv6 literal — accepted
+    return; // IPv6 literal - accepted
   }
   if (looksLikeIPv4(host)) {
     throw new Error(

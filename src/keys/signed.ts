@@ -1,10 +1,10 @@
 /**
  * Signed-document compose helpers.
  *
- * Every Ed25519-signed SEMP document — closure request, configuration
+ * Every Ed25519-signed SEMP document - closure request, configuration
  * update, user policy, migration record, sender-signature enclosure,
  * delivery receipt, transparency STH, recovery manifest, recovery
- * share, handshake response/accepted/rejected — follows the same
+ * share, handshake response/accepted/rejected - follows the same
  * shape: build the document with the signature value blanked,
  * canonicalize per ENVELOPE.md §4.3, prepend a domain-separation
  * prefix, sign with Ed25519, write the signature back into the
@@ -91,7 +91,7 @@ export interface VerifySignedDocResult {
  * Throws if the document is structurally malformed (path missing,
  * signature not a string, signature not valid base64). A successful
  * parse with a bad signature returns `{ ok: false, canonicalBlanked }`
- * — the canonical bytes are returned so callers can cross-check
+ * - the canonical bytes are returned so callers can cross-check
  * pinned `intermediates.canonical_with_blanked_signature_utf8`.
  */
 export function verifySignedDoc(spec: VerifySignedDocSpec): VerifySignedDocResult {

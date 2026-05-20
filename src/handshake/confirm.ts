@@ -14,8 +14,8 @@ import { sha256 } from "@noble/hashes/sha2.js";
 /**
  * Compute SHA-256 over the concatenation of canonical(message_1)
  * and canonical(message_2). The caller MUST pass the canonical
- * bytes — sorted keys, no insignificant whitespace, as defined in
- * ENVELOPE.md §4.3 — not the wire-format bytes.
+ * bytes - sorted keys, no insignificant whitespace, as defined in
+ * ENVELOPE.md §4.3 - not the wire-format bytes.
  *
  * The output is the 32-byte digest the client signs as part of its
  * identity proof.

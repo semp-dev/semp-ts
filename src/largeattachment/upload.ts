@@ -28,7 +28,7 @@ export type AttachmentSuite =
 
 /** Inputs to {@link encryptAttachment}. */
 export interface EncryptAttachmentInput {
-  /** Negotiated session suite — selects the AEAD per §3.2. */
+  /** Negotiated session suite - selects the AEAD per §3.2. */
   suite: AttachmentSuite;
   /** 32-byte K_enclosure from the envelope this item belongs to. */
   kEnclosure: Uint8Array;
@@ -52,7 +52,7 @@ export interface EncryptAttachmentInput {
 export interface EncryptAttachmentResult {
   /** Fully populated item ready to drop into the enclosure. */
   item: Item;
-  /** AEAD ciphertext bytes — uploaded by the caller to `item.url`. */
+  /** AEAD ciphertext bytes - uploaded by the caller to `item.url`. */
   ciphertext: Uint8Array;
 }
 
@@ -61,7 +61,7 @@ export interface EncryptAttachmentResult {
  * plaintext, populate the item with `ciphertext_hash` and return
  * the bytes the caller uploads to `item.url`.
  *
- * Does NOT upload anything — the caller PUTs `ciphertext` to `url`.
+ * Does NOT upload anything - the caller PUTs `ciphertext` to `url`.
  */
 export function encryptAttachment(
   input: EncryptAttachmentInput,

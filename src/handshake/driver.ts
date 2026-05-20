@@ -107,7 +107,7 @@ export interface ClientConfig {
    * AEAD-Seal under K_enc_c2s with AAD = session_id.
    *
    * When omitted (the default), the driver leaves identity_proof
-   * empty — the higher-level client wraps runClient with its
+   * empty - the higher-level client wraps runClient with its
    * own auth supply.
    */
   identity?: {
@@ -167,7 +167,7 @@ export class HandshakeRejectedError extends Error {
  *
  * On error the transport is closed so the peer's pending `receive`
  * unblocks. Successful completion leaves the transport owned by
- * the returned Session — closing the Session closes the transport.
+ * the returned Session - closing the Session closes the transport.
  */
 export async function runClient(
   transport: Transport,

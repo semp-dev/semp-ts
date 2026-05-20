@@ -11,7 +11,7 @@
  * This module provides:
  *
  *  - {@link computeEnvelopeHash}: SHA-256 over canonical envelope bytes
- *    (the same canonical form `seal.signature` is computed over —
+ *    (the same canonical form `seal.signature` is computed over -
  *    `signature` and `session_mac` blanked, `hop_count` and `padding`
  *    omitted).
  *  - {@link signDeliveryReceipt}: build + sign a receipt from
@@ -114,7 +114,7 @@ export interface SignDeliveryReceiptResult {
 /**
  * SHA-256 of canonical envelope bytes, base64-encoded, per
  * §1.1.1.3. The caller is responsible for producing the canonical
- * bytes — typically via `envelope.canonicalEnvelopeFor(env)` which
+ * bytes - typically via `envelope.canonicalEnvelopeFor(env)` which
  * applies §4.3 elision (signature, session_mac, hop_count, padding).
  */
 export function computeEnvelopeHash(canonicalEnvelopeBytes: Uint8Array): string {
@@ -185,7 +185,7 @@ export interface VerifyDeliveryReceiptInput {
  * structural validation failure (use {@link validateReceipt} ahead
  * of time to surface those as boolean false instead).
  *
- * Does NOT cross-check `accepted_at` against the verifier's clock —
+ * Does NOT cross-check `accepted_at` against the verifier's clock -
  * that is a §1.1.1.5 caller-side decision and MUST be applied with
  * the {@link ReceiptClockSkewToleranceSeconds} tolerance.
  */

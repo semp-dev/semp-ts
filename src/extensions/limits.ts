@@ -8,7 +8,7 @@
  * ```
  *
  * Per-layer byte-size ceilings (§4) are enforced before signature
- * verification — an over-large `extensions` map MUST be rejected
+ * verification - an over-large `extensions` map MUST be rejected
  * outright, regardless of any signature it might carry.
  *
  * Required extensions a recipient does not understand MUST be
@@ -154,7 +154,7 @@ export function validateKey(key: string): Error | null {
  *     ({@link SizeError})
  *
  * Non-required (`required: false`) extensions are passed through
- * unconditionally — the receiver is free to ignore them.
+ * unconditionally - the receiver is free to ignore them.
  */
 export function validate(
   registry: Registry | null,

@@ -85,7 +85,7 @@ interface ReceiptRecord {
  * Reference {@link ReceiptStore} backed by a Map. Acknowledge drops
  * the receipt immediately so no plaintext archive accumulates.
  *
- * Single-process only — production deployments replace this with a
+ * Single-process only - production deployments replace this with a
  * durable backend.
  */
 export class InMemoryReceiptStore implements ReceiptStore {

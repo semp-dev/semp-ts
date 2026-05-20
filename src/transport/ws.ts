@@ -9,7 +9,7 @@
  *   - One SEMP message per WebSocket TEXT frame, UTF-8 JSON.
  *     Binary frames MUST NOT carry SEMP messages.
  *
- * Targets the WHATWG WebSocket API — works natively in Node 22+ and
+ * Targets the WHATWG WebSocket API - works natively in Node 22+ and
  * every browser. No `ws` npm package or other dependency.
  *
  * @module

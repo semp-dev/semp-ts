@@ -85,7 +85,7 @@ export function defaultAlphaRanges(servers: number): AlphaRange[] {
  * lookup server (published at `_semp-partition-lookup.<domain>` SRV)
  * and returns the hostname of the delivery server that handles
  * `address`. The discovery package does not prescribe the wire
- * format of the lookup query — DISCOVERY.md §2.4 says "the
+ * format of the lookup query - DISCOVERY.md §2.4 says "the
  * partition server address is published as a separate SRV record"
  * and leaves the query protocol to the implementation.
  */
@@ -342,7 +342,7 @@ export function parsePartitionTXT(
         cfg.algorithm = val;
         break;
       default:
-        // unknown key — skip (forward compat).
+        // unknown key - skip (forward compat).
         break;
     }
   }

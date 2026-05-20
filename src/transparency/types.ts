@@ -23,7 +23,7 @@ export const LeafPrefix = 0x00;
 export const InteriorPrefix = 0x01;
 
 /**
- * STH staleness ceiling per §2.3 — verifiers reject STHs whose
+ * STH staleness ceiling per §2.3 - verifiers reject STHs whose
  * timestamp is more than this old.
  */
 export const MaxSTHFreshnessMs = 60 * 60 * 1000;
@@ -55,7 +55,7 @@ export interface LogEntry {
   revoked_at?: string | null;
   /** Populated only on `revoke`. */
   revoked_reason?: string | null;
-  /** Populated only on `rotate` — names the key being rotated out. */
+  /** Populated only on `rotate` - names the key being rotated out. */
   supersedes?: string | null;
   /** ISO 8601 UTC; the log's timestamp for this insertion. */
   log_timestamp: string;

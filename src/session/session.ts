@@ -115,7 +115,7 @@ export class Session {
 
   /**
    * Live session keys. Throws if the session has been closed or
-   * erased — once erase() runs, the bytes are zeroized and any
+   * erased - once erase() runs, the bytes are zeroized and any
    * caller still holding a Session reference cannot accidentally
    * encrypt under invalidated material.
    */
@@ -161,7 +161,7 @@ export class Session {
 
   /**
    * Close the session and the underlying transport. Idempotent.
-   * Does NOT zeroize keys — callers that want zeroization use
+   * Does NOT zeroize keys - callers that want zeroization use
    * {@link erase}.
    */
   async close(): Promise<void> {
@@ -180,7 +180,7 @@ export class Session {
    * Atomically install new session keys + a new session_id from a
    * successful rekey. Zeroizes the prior keys before swapping. The
    * session retains its TTL boundary (TTL counts from the original
-   * establishedAt) — rekey rolls forward the keys, not the lifetime.
+   * establishedAt) - rekey rolls forward the keys, not the lifetime.
    */
   applyRekey(apply: RekeyApply): void {
     if (this._keys === null) {

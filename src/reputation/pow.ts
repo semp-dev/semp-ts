@@ -103,7 +103,7 @@ export function issueChallenge(
   };
 }
 
-/** Base64-encoded challenge prefix — what the wire carries. */
+/** Base64-encoded challenge prefix - what the wire carries. */
 export function challengePrefixBase64(c: PoWChallenge): string {
   if (typeof Buffer !== "undefined") {
     return Buffer.from(c.prefix).toString("base64");

@@ -20,7 +20,7 @@ export const MinRetryMultiplier = 2.0;
 /** Cap on individual inter-attempt intervals per §2.3 (6 hours). */
 export const MaxRetryIntervalMs = 6 * 60 * 60 * 1000;
 
-/** Minimum jitter half-width per §2.3 (10% — RECOMMENDED 25%). */
+/** Minimum jitter half-width per §2.3 (10% - RECOMMENDED 25%). */
 export const MinRetryJitterFraction = 0.10;
 
 /**
@@ -157,7 +157,7 @@ export function isRecoverableReason(reasonCode: string): boolean {
 }
 
 /**
- * Effective delivery deadline per §2.4 — the earlier of
+ * Effective delivery deadline per §2.4 - the earlier of
  * `postmark.expires` and `queuedAt + horizon`. `horizon <= 0`
  * defaults to {@link DefaultMaxRetryHorizonMs}; values larger than
  * {@link MaxRetryHorizonCapMs} clamp down.

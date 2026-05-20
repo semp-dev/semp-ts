@@ -1,5 +1,5 @@
 /**
- * Discovery resolver — well-known URI fetch + parse, plus the
+ * Discovery resolver - well-known URI fetch + parse, plus the
  * higher-level "resolve a server" orchestrator that produces the
  * `serverDomainPub` a {@link "../handshake/driver".runClient} call
  * needs.
@@ -9,7 +9,7 @@
  * the resolver uses Node 22+'s global `fetch`.
  *
  * The DNS SRV / TXT lookup leg of §5.1 is intentionally not
- * implemented in this module — it requires `node:dns/promises` and
+ * implemented in this module - it requires `node:dns/promises` and
  * does not cleanly tree-shake into a browser bundle. Callers that
  * need DNS-first discovery wire it in front of {@link resolveServer}
  * and pass an explicit `host` / well-known URL.
@@ -54,7 +54,7 @@ export interface FetchOptions {
   /** Optional cancellation signal. */
   signal?: AbortSignal;
   /**
-   * Per-request timeout in milliseconds. Defaults to 10 seconds —
+   * Per-request timeout in milliseconds. Defaults to 10 seconds -
    * matches semp-go's `FetchConfiguration` default.
    */
   timeoutMs?: number;
@@ -73,7 +73,7 @@ export function wellKnownUrl(host: string): string {
  * Throws on transport failure, non-200 status, oversized body, or
  * structural parse failure.
  *
- * The URL's scheme is NOT enforced — production callers must pass an
+ * The URL's scheme is NOT enforced - production callers must pass an
  * `https://` URL, but tests need to point at a local httptest-style
  * server so this layer stays permissive.
  */
@@ -98,7 +98,7 @@ export async function fetchConfiguration(
  * `endpoints.domain_keys` in a server's configuration. Returns the
  * parsed document and the cross-checked signing-key public bytes.
  *
- * Throws if the fingerprint cross-check fails — a peer that trusts
+ * Throws if the fingerprint cross-check fails - a peer that trusts
  * the publication channel still MUST confirm `key_id` is the SHA-256
  * fingerprint of `public_key`, otherwise a misconfiguration could
  * swap in a key whose fingerprint doesn't match the one the peer
@@ -246,7 +246,7 @@ async function fetchTextBounded(
     throw new Error(`discovery: GET ${url} returned ${resp.status}`);
   }
 
-  // Permissive content-type check — some servers return
+  // Permissive content-type check - some servers return
   // application/octet-stream for .json paths. We require JSON in the
   // body parse, not in the header.
   const ct = resp.headers.get("content-type") ?? "";

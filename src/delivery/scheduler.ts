@@ -410,7 +410,7 @@ export class Scheduler {
 
 /**
  * Reference in-memory {@link SchedulerStore}. Tests / single-process
- * demos only — production deployments back the queue with durable
+ * demos only - production deployments back the queue with durable
  * storage per DELIVERY.md §2.1.
  */
 export class InMemorySchedulerStore implements SchedulerStore {

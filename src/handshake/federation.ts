@@ -2,7 +2,7 @@
  * Federation handshake (server ↔ server) per HANDSHAKE.md §5.
  *
  * Two servers establish a federation session by exchanging four
- * messages — symmetric in shape to the client handshake but with
+ * messages - symmetric in shape to the client handshake but with
  * domain identity in plaintext on both sides plus a domain-proof
  * verification step:
  *
@@ -222,7 +222,7 @@ export interface FederationResume {
 /**
  * Domain-ownership verifier invoked by the responder during the
  * handshake. `verify` resolves on success; rejects (or throws) on
- * failure — the rejection reason is surfaced in
+ * failure - the rejection reason is surfaced in
  * {@link DomainVerificationResult.detail}.
  */
 export interface DomainVerifier {
@@ -235,7 +235,7 @@ export interface DomainVerifier {
 
 /**
  * Permissive verifier that accepts every proof. Tests / single-
- * process deployments only — production MUST NOT use it.
+ * process deployments only - production MUST NOT use it.
  */
 export class TrustingDomainVerifier implements DomainVerifier {
   async verify(): Promise<void> {
@@ -246,7 +246,7 @@ export class TrustingDomainVerifier implements DomainVerifier {
 /**
  * Decide which of two simultaneously-initiated federation handshakes
  * proceeds per SESSION.md §2.5.2. Both peers agree on the winner
- * without external coordination — lexicographic compare provides
+ * without external coordination - lexicographic compare provides
  * exactly this property.
  *
  * Returns the winning `session_id` (the one that proceeds).
@@ -306,7 +306,7 @@ export interface FederationInitiatorSession {
 
 /**
  * Stateful federation initiator. Mirror of `semp-go/handshake.Initiator`.
- * Single-shot — discard after success or error.
+ * Single-shot - discard after success or error.
  */
 export class FederationInitiator {
   private readonly cfg: FederationInitiatorConfig;
@@ -790,7 +790,7 @@ export interface FederationResponderSession {
 
 /**
  * Stateful federation responder. Mirror of `semp-go/handshake.Responder`.
- * Single-shot — discard after success or error.
+ * Single-shot - discard after success or error.
  */
 export class FederationResponder {
   private readonly cfg: FederationResponderConfig;

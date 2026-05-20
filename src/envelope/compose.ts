@@ -219,10 +219,10 @@ export function compose(input: ComposeInput): Envelope {
   //
   // Wire-shape rules:
   //   postmark.extensions and seal.extensions DEFAULT to {} when
-  //     the caller doesn't pass them — these slots are always
+  //     the caller doesn't pass them - these slots are always
   //     present on the wire (some routers depend on the keys
   //     existing as a marker even when empty).
-  //   Top-level extensions DEFAULTS to absent — the spec treats
+  //   Top-level extensions DEFAULTS to absent - the spec treats
   //     it as truly optional.
   const postmark: PostmarkFields = {
     ...input.postmark,
@@ -267,7 +267,7 @@ export function compose(input: ComposeInput): Envelope {
 }
 
 /**
- * Compute the §4.3 canonical envelope bytes — signature and
+ * Compute the §4.3 canonical envelope bytes - signature and
  * session_mac blanked, hop_count and padding omitted.
  */
 export function canonicalEnvelopeFor(envelope: unknown): Uint8Array {
@@ -322,7 +322,7 @@ export interface OpenedEnvelope {
  * returns the parsed plaintexts. Throws if the recipient slot is
  * absent or the AEAD tag does not verify.
  *
- * Does NOT verify seal.signature or seal.session_mac — those are
+ * Does NOT verify seal.signature or seal.session_mac - those are
  * the routing-server / receiving-server checks per §7.2 and live
  * on the server side. {@link verifySealSignature} and
  * {@link verifySessionMAC} are the corresponding verifier helpers.

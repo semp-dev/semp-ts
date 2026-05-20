@@ -140,7 +140,7 @@ describe("delivery.receipt", () => {
 
     expect(verifyEnvelopeBinding(receipt, canonicalOriginal)).toBe(true);
 
-    // The receipt's signature is unaffected by envelope mutation —
+    // The receipt's signature is unaffected by envelope mutation -
     // tampering the envelope only breaks the envelope-binding check.
     const tamperedEnv = fakeEnvelope();
     const tamperedPostmark = tamperedEnv.postmark as Record<string, unknown>;
@@ -148,7 +148,7 @@ describe("delivery.receipt", () => {
     const canonicalTampered = canonicalEnvelopeFor(tamperedEnv);
     expect(verifyEnvelopeBinding(receipt, canonicalTampered)).toBe(false);
 
-    // Receipt itself still verifies — separation of concerns per
+    // Receipt itself still verifies - separation of concerns per
     // §1.1.1.7 step 3 vs step 4.
     expect(verifyDeliveryReceipt({ receipt, domainPub: pub })).toBe(true);
   });

@@ -10,7 +10,7 @@
  *   3. Walk the supplied recipient candidates and open the brief +
  *      enclosure for the first matching device key.
  *
- * `openAndVerify` does NOT run `seal.session_mac` — that is the
+ * `openAndVerify` does NOT run `seal.session_mac` - that is the
  * routing-server / receiving-server check between adjacent SEMP
  * peers; the recipient client uses {@link "./verify".verifySessionMAC}
  * separately when it has access to the K_env_mac.

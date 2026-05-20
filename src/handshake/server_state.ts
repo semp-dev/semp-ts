@@ -3,7 +3,7 @@
  *
  * Mirror of `semp-go/handshake.Server`: a state machine the caller
  * drives over a transport. The class never performs network I/O
- * directly — the caller moves bytes between this object and the
+ * directly - the caller moves bytes between this object and the
  * underlying transport.
  *
  * Lifecycle:
@@ -116,7 +116,7 @@ export class HandshakeServerRejectionError extends Error {
 
 /**
  * Stateful handshake server. One instance handles exactly one
- * handshake — discard after success or error. Re-using an instance
+ * handshake - discard after success or error. Re-using an instance
  * is a programming error (the state machine is single-shot).
  */
 export class HandshakeServer {
@@ -153,7 +153,7 @@ export class HandshakeServer {
   /**
    * Process the client's INIT and produce signed RESPONSE bytes per
    * §2.2 / §2.3. Throws {@link HandshakeServerRejectionError} on
-   * suite mismatch — the rejection bytes are accessible on the
+   * suite mismatch - the rejection bytes are accessible on the
    * thrown error for the caller to transmit before closing the
    * transport.
    */

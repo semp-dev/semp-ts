@@ -72,7 +72,7 @@ export interface PartitionInput {
  *       excluded from the partition entirely.
  *  2. Compute the implicit full-access stage as
  *     `max(delegated_stages_with_mode_not_none) + 1`, taken across
- *     ALL delegates with `receive.mode !== "none"` — not just those
+ *     ALL delegates with `receive.mode !== "none"` - not just those
  *     that allowed THIS envelope. Matches §10.3.3.1's "the maximum
  *     is taken over all delegated devices of the account that have
  *     a receive matcher whose mode is not none". When no such

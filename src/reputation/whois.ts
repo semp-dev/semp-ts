@@ -1,7 +1,7 @@
 /**
  * WHOIS hooks per REPUTATION.md §2.1.
  *
- * Operators supply their own WHOIS implementation — there is no de
+ * Operators supply their own WHOIS implementation - there is no de
  * facto WHOIS library that is both reliable and free of rate limits,
  * so this is intentionally pluggable.
  *

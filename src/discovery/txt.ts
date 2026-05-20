@@ -14,7 +14,7 @@
  *   - `c`  list    comma-separated transport identifiers
  *   - `f`  list    comma-separated optional features
  *
- * Unknown keys MUST be ignored, not rejected — DNS TXT records are
+ * Unknown keys MUST be ignored, not rejected - DNS TXT records are
  * a public surface and an upgrading peer might add new keys before
  * a downgrading peer learns about them.
  *

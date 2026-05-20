@@ -134,7 +134,7 @@ export interface SignDeviceCertificateResult {
  * Compute the issuer's signature over the canonical certificate
  * bytes, then return a copy with `signature.{algorithm,key_id,value}`
  * populated. Pre-populates the algorithm + key_id BEFORE
- * canonicalization so the canonical bytes cover both — an attacker
+ * canonicalization so the canonical bytes cover both - an attacker
  * cannot downgrade the signing algorithm or forge a different
  * issuer fingerprint.
  */
@@ -173,7 +173,7 @@ export function signDeviceCertificate(
  * Ed25519-verify a certificate's signature under `issuerPub`. Returns
  * true when the signature verifies. Does NOT cross-check that the
  * issuer is currently a registered, non-revoked full-access device
- * for the account — that requires a key directory store and is the
+ * for the account - that requires a key directory store and is the
  * caller's responsibility.
  */
 export function verifyDeviceCertificate(
@@ -422,7 +422,7 @@ export interface AddressIdentity {
 
 /**
  * Report whether `matcher` permits sending to `recipient` per
- * §10.3.3.1. Does NOT evaluate rate limits — the caller applies
+ * §10.3.3.1. Does NOT evaluate rate limits - the caller applies
  * rate-limit tiers separately per §10.3.4.
  */
 export function scopeAllowsRecipient(
@@ -439,7 +439,7 @@ export function scopeAllowsRecipient(
     case "denylist":
       return !matchAny(matcher.deny ?? [], recipient);
     default:
-      // Unknown mode — fail closed.
+      // Unknown mode - fail closed.
       return false;
   }
 }

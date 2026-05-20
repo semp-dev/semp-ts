@@ -54,7 +54,7 @@ export function verifyChallengeSolution(
   if (nonceB64 === "") {
     return new Error("handshake: empty PoW nonce");
   }
-  // Nonce must be valid base64 — but we accept its bytes as-is in
+  // Nonce must be valid base64 - but we accept its bytes as-is in
   // the preimage (the spec hashes the base64 string, not the
   // decoded bytes).
   try {

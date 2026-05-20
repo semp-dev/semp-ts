@@ -76,7 +76,7 @@ export function computeFirstContactPrefix(
  * trailing 32 bytes of the prefix are SHA-256 of the canonical
  * binding input.
  *
- * Does NOT verify the PoW solution itself — pair with
+ * Does NOT verify the PoW solution itself - pair with
  * `verifyChallengeSolution` from {@link "./pow"} for a full check.
  */
 export function verifyFirstContactBinding(

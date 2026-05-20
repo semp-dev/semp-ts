@@ -10,7 +10,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 
 /**
  * Compute HMAC-SHA-256 over `message` keyed by `key`. The output is
- * always 32 bytes — the same width every SEMP MAC field expects.
+ * always 32 bytes - the same width every SEMP MAC field expects.
  */
 export function computeMAC(key: Uint8Array, message: Uint8Array): Uint8Array {
   return hmac(sha256, key, message);

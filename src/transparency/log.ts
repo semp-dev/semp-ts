@@ -60,7 +60,7 @@ export class Log {
   /**
    * Validate `entry`, hash its leaf, and append. Returns the
    * assigned 0-based leaf index. Does NOT verify any signature on
-   * the entry — admission policy is the caller's concern.
+   * the entry - admission policy is the caller's concern.
    */
   append(entry: LogEntry): number {
     validateLogEntry(entry);
@@ -168,7 +168,7 @@ export class Log {
 }
 
 function isoSecond(d: Date): string {
-  // Strip milliseconds — STH timestamps are second-precision per
+  // Strip milliseconds - STH timestamps are second-precision per
   // CONFORMANCE.md §9.3.
   const iso = d.toISOString();
   return iso.replace(/\.\d{3}Z$/, "Z");

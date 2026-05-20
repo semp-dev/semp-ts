@@ -69,7 +69,7 @@ export interface Brief {
  *
  * Returned copies:
  *
- *  1. If `b.bcc` is empty or undefined, returns `[b]` — a single
+ *  1. If `b.bcc` is empty or undefined, returns `[b]` - a single
  *     copy, returned unchanged.
  *
  *  2. Otherwise, returns `b.bcc.length + 1` elements:

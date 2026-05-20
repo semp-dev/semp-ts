@@ -1,5 +1,5 @@
 /**
- * Reference per-user envelope inbox — minimal in-memory FIFO.
+ * Reference per-user envelope inbox - minimal in-memory FIFO.
  *
  * Intended for in-process tests, embedded servers, and the
  * reference {@link "./fetch".FetchResponse} producer. NOT a
@@ -14,7 +14,7 @@
  *
  * Production deployments MUST back this with a durable store,
  * retention rules, fairness controls, and per-address access
- * control — none of which are present here.
+ * control - none of which are present here.
  *
  * @module
  */

@@ -4,7 +4,7 @@
  * Reads frames off a Session's transport in a loop, parses the
  * outermost `type` field, and routes each frame to the matching
  * caller-supplied handler. Designed for the long-running phase
- * after a successful handshake — when the wire carries a mix of
+ * after a successful handshake - when the wire carries a mix of
  * envelopes, sealed rekey messages, key-fetch requests, etc.
  *
  * The dispatcher does NOT verify envelope signatures or open
@@ -23,7 +23,7 @@ export interface DispatchHandlers {
    * transport and invokes this with the JSON object (already
    * parsed). Production callers route through {@link "./rekey".rekeyServer}
    * by feeding the bytes back through their own transport-level
-   * input — see the dispatcher example in the README.
+   * input - see the dispatcher example in the README.
    */
   onRekey?: (frame: Uint8Array, parsed: unknown) => Promise<void> | void;
 
@@ -53,7 +53,7 @@ export interface DispatchHandlers {
 
   /**
    * Invoked on a non-fatal error inside a handler. The dispatcher
-   * loop continues — the caller MUST decide whether to close the
+   * loop continues - the caller MUST decide whether to close the
    * session. If this is not supplied, handler errors are swallowed.
    */
   onHandlerError?: (err: Error, type: string) => void;

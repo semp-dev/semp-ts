@@ -3,7 +3,7 @@
  *
  * Mirror of `semp-go/handshake.Client`: a state machine the caller
  * drives over a transport. The class never performs network I/O
- * directly — the caller moves bytes between this object and the
+ * directly - the caller moves bytes between this object and the
  * underlying transport.
  *
  * Lifecycle:
@@ -124,7 +124,7 @@ export { HandshakeRejectedError };
 
 /**
  * Stateful handshake client. One instance handles exactly one
- * handshake — discard after success or error. Re-using an instance
+ * handshake - discard after success or error. Re-using an instance
  * is a programming error (the state machine is single-shot).
  */
 export class HandshakeClient {
@@ -151,7 +151,7 @@ export class HandshakeClient {
   private resumptionSecret: Uint8Array | null = null;
   private resumeNonce: Uint8Array | null = null;
 
-  /** Final session — populated by {@link onAccepted}. */
+  /** Final session - populated by {@link onAccepted}. */
   private finalSession: HandshakeClientSession | null = null;
 
   constructor(cfg: HandshakeClientConfig) {
@@ -233,7 +233,7 @@ export class HandshakeClient {
    *
    * Throws {@link ChallengeInvalidError} when the difficulty
    * exceeds the protocol cap or the challenge has already
-   * expired — the caller follows up with a §2.2a.6 client abort.
+   * expired - the caller follows up with a §2.2a.6 client abort.
    */
   async onChallenge(data: Uint8Array): Promise<Uint8Array> {
     if (this.initCanonical === null) {
@@ -315,7 +315,7 @@ export class HandshakeClient {
 
   /**
    * Process the server's RESPONSE, derive session keys, and produce
-   * CONFIRM bytes per §2.3 — §2.5. The ephemeral private key is
+   * CONFIRM bytes per §2.3 - §2.5. The ephemeral private key is
    * zeroed before return.
    */
   onResponse(data: Uint8Array): Uint8Array {

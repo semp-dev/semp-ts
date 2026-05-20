@@ -42,7 +42,7 @@ class Endpoint implements Transport {
     }
     this.closed = true;
     // Closing one end does NOT immediately drain the other side's
-    // outbox — buffered messages from the closed peer are still
+    // outbox - buffered messages from the closed peer are still
     // delivered before the inbox returns null.
     this.outbox.closeWriter();
     this.inbox.closeReader();

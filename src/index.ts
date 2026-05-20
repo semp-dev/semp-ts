@@ -1,5 +1,5 @@
 /**
- * SEMP: Sealed Envelope Messaging Protocol — TypeScript implementation.
+ * SEMP: Sealed Envelope Messaging Protocol - TypeScript implementation.
  *
  * @see {@link https://github.com/semp-dev/semp-spec}
  *

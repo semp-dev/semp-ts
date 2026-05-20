@@ -296,7 +296,7 @@ describe("Pipeline", () => {
     expect(r.results[0]!.reason_code).toBe("policy_forbidden");
   });
 
-  // Suppress unused warning — we use ed25519Sign indirectly via the
+  // Suppress unused warning - we use ed25519Sign indirectly via the
   // envelope.compose path, but a TS-side import is still needed to
   // keep the dependency graph clear.
   void ed25519Sign;

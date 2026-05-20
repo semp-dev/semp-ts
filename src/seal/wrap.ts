@@ -88,7 +88,7 @@ export function unwrap(
   const wrapKey = kdf.expand(prk, new TextEncoder().encode(WrapInfo), 32);
 
   // AEAD: zero nonce, recipientPublicKey as AAD. The seal AEAD is
-  // ChaCha20-Poly1305 (12-byte nonce) regardless of suite — only
+  // ChaCha20-Poly1305 (12-byte nonce) regardless of suite - only
   // the KEM is post-quantum on the PQ side. The `suite`-derived
   // `aead` here is unused but kept for signature parity.
   void aead;
@@ -100,7 +100,7 @@ export function unwrap(
  * Wrap `symmetricKey` for the given recipient under the negotiated
  * suite. Production code path: uses the platform CSPRNG to generate
  * a fresh ephemeral every call, which is what the §4.4.1 wrap
- * construction requires — wrap-key uniqueness is what makes the
+ * construction requires - wrap-key uniqueness is what makes the
  * zero-nonce AEAD safe.
  *
  * For deterministic byte-level reproducibility (vectors, audits),
@@ -146,7 +146,7 @@ export interface WrapRandomness {
 
 /**
  * Deterministic wrap for vector reproduction and audits. Production
- * code MUST use {@link wrap} (which sources fresh entropy) — a
+ * code MUST use {@link wrap} (which sources fresh entropy) - a
  * deterministic wrap that leaks `ephemeralX25519Priv` reduces to
  * "the adversary has the wrap key". Exposed here only because
  * cross-language vectors pin these inputs.
@@ -172,7 +172,7 @@ export function wrapWithRandomness(
   const wrapKey = kdf.expand(prk, new TextEncoder().encode(WrapInfo), 32);
 
   // AEAD: zero nonce, recipientPublicKey as AAD. Always
-  // ChaCha20-Poly1305 (12-byte nonce) regardless of suite — only
+  // ChaCha20-Poly1305 (12-byte nonce) regardless of suite - only
   // the KEM is post-quantum on the PQ side.
   const nonce = new Uint8Array(12);
   const aeadCT = aeadSeal(

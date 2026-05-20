@@ -20,7 +20,7 @@ import {
 } from "./types.js";
 
 // ---------------------------------------------------------------------------
-// SuccessorRecord — three-signature record per §7.3
+// SuccessorRecord - three-signature record per §7.3
 
 /**
  * Pre-populate the algorithm + key_id fields on all three signature
@@ -269,7 +269,7 @@ function canonicalSuccessorBytesElidingThreeSignatures(
 }
 
 // ---------------------------------------------------------------------------
-// RecoverySetManifest — single user-identity signature per §5.2
+// RecoverySetManifest - single user-identity signature per §5.2
 
 /**
  * Sign `m.signature` with the user's identity private key per §5.2.
@@ -397,7 +397,7 @@ export function validateManifest(
 }
 
 // ---------------------------------------------------------------------------
-// RecoveryShareRecord — single device-identity signature per §5.3
+// RecoveryShareRecord - single device-identity signature per §5.3
 
 /** Sign `s.device_signature` with the device's identity private key per §5.3. */
 export function signShareRecord(

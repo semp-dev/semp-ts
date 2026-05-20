@@ -188,7 +188,7 @@ export class InMemoryKeyStore implements PrivateKeyStore {
   }
 
   putDeviceCertificate(cert: DeviceCertificate): void {
-    // Stored under the delegated device's public-key fingerprint —
+    // Stored under the delegated device's public-key fingerprint -
     // matches the LookupDeviceCertificate(fp) parameter shape used
     // by the scope-enforcement path. Callers compute the fingerprint
     // from cert.device_public_key.

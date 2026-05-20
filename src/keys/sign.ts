@@ -68,7 +68,7 @@ export function verify(
 }
 
 /**
- * Compute the SEMP key fingerprint per `KEY.md` §3 — SHA-256 of
+ * Compute the SEMP key fingerprint per `KEY.md` §3 - SHA-256 of
  * the raw 32-byte public key, lowercase-hex encoded. Used as the
  * `key_id` field everywhere keys are referenced.
  */

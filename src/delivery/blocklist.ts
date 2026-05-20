@@ -71,7 +71,7 @@ export interface BlockListSender {
  * `user > server > domain`.
  *
  * Entries past `expires_at` are skipped (no clock-skew tolerance
- * applied here — callers that want the §4.4 grace window evaluate
+ * applied here - callers that want the §4.4 grace window evaluate
  * expiry themselves).
  *
  * All comparisons are case-insensitive.
@@ -135,7 +135,7 @@ export function matchBlockList(
         rank = RANK_DOMAIN;
         break;
       default:
-        continue; // unknown entity type — forward-compat ignore
+        continue; // unknown entity type - forward-compat ignore
     }
     if (rank > bestRank) {
       bestRank = rank;

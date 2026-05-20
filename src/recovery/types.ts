@@ -43,7 +43,7 @@ export interface RecoverySignatureBlock {
 }
 
 /**
- * SEMP_SUCCESSOR per §7.2 — links a prior identity key to a new one
+ * SEMP_SUCCESSOR per §7.2 - links a prior identity key to a new one
  * after recovery or rotation. Carries three independent signatures
  * so third-party domains can verify continuity without needing the
  * prior identity private key.
@@ -79,7 +79,7 @@ export interface RecoveryContributor {
 }
 
 /**
- * SEMP_RECOVERY_SET_MANIFEST per §5.2 — binds each Shamir share
+ * SEMP_RECOVERY_SET_MANIFEST per §5.2 - binds each Shamir share
  * index to a specific device's identity public key.
  */
 export interface RecoverySetManifest {
@@ -95,7 +95,7 @@ export interface RecoverySetManifest {
 }
 
 /**
- * SEMP_RECOVERY_SHARE per §5.3 — one device's holding of a Shamir
+ * SEMP_RECOVERY_SHARE per §5.3 - one device's holding of a Shamir
  * share, authenticated by the device's identity-key signature.
  */
 export interface RecoveryShareRecord {

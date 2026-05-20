@@ -23,7 +23,7 @@ export const DefaultMaxEnvelopeSize = 25 * 1024 * 1024;
  * Select the size bucket for an unpadded envelope of the given byte
  * size per the default power-of-two curve (4096, 8192, 16384, ...).
  *
- * Throws on negative input or input that exceeds the ceiling — over-
+ * Throws on negative input or input that exceeds the ceiling - over-
  * limit envelopes MUST be recomposed; padding is not a remedy for
  * over-limit content.
  */
@@ -60,7 +60,7 @@ export function selectSizeBucket(
  * in which case the floor relaxes to 1 (a single-domain non-group
  * send reveals only the obvious cardinality and gains no
  * obfuscation from padding to 2). Real counts above 1024 force
- * recomposition into multiple envelopes — the runner returns a
+ * recomposition into multiple envelopes - the runner returns a
  * sentinel of -1 in that case so callers can detect it.
  */
 export function selectRecipientCountBucket(

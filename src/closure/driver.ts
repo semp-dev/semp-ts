@@ -37,7 +37,7 @@ export interface DriverConfig {
  *  - `already_pending`: a request is already pending for this
  *    user_id; the §2.4 rule rejects double-requests.
  *  - `not_pending`: a cancel arrived for an account with no
- *    pending request — the spec treats this as a no-op success.
+ *    pending request - the spec treats this as a no-op success.
  *  - `invalid`: the record failed structural validation.
  */
 export type SubmitResult =
@@ -64,7 +64,7 @@ export class Driver {
 
   /**
    * Apply `record` to the store. Caller MUST verify the record's
-   * signature and authority (§2.3 — the issuing device must be a
+   * signature and authority (§2.3 - the issuing device must be a
    * full-access device of the account) BEFORE calling submit.
    */
   async submit(record: ClosureRecord): Promise<SubmitResult> {

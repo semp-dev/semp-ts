@@ -84,7 +84,7 @@ export type InboxStore = Pick<Inbox, "store">;
 /** Hook returning the current session-id retired status. */
 export type SessionRetiredFunc = (sessionId: string) => Promise<boolean>;
 
-/** Decoded brief shape — minimal fields the pipeline needs. */
+/** Decoded brief shape - minimal fields the pipeline needs. */
 export interface DecodedBrief {
   to: string[];
   cc?: string[];
@@ -132,7 +132,7 @@ export interface PipelineConfig {
   clockSkewMs?: number;
 }
 
-/** Envelope-wide rejection produced by steps 1–7. */
+/** Envelope-wide rejection produced by steps 1-7. */
 export interface PipelineRejection {
   reasonCode: string;
   reason: string;
@@ -150,7 +150,7 @@ export interface PipelineResult {
    */
   results: SubmissionResult[];
   /**
-   * Envelope-wide rejection (steps 1–7). Implies {@link results} is
+   * Envelope-wide rejection (steps 1-7). Implies {@link results} is
    * empty.
    */
   rejection?: PipelineRejection;
@@ -158,7 +158,7 @@ export interface PipelineResult {
 
 /**
  * Receive-side delivery pipeline. Single-process, callable across
- * many envelopes. Concurrency is the caller's responsibility — each
+ * many envelopes. Concurrency is the caller's responsibility - each
  * `process()` call is independent and stateless beyond the
  * configured hooks.
  */
@@ -226,7 +226,7 @@ export class Pipeline {
       return result;
     }
     // Steps 6 + 7: home-server brief-only open. We don't need
-    // K_enclosure here — only the recipient client does. Walk the
+    // K_enclosure here - only the recipient client does. Walk the
     // configured candidates and try each against
     // env.seal.brief_recipients.
     let brief: DecodedBrief;

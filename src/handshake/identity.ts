@@ -2,7 +2,7 @@
  * Identity-proof composition per HANDSHAKE.md §2.5.
  *
  * The client's CONFIRM message carries an encrypted identity-proof
- * block — a self-contained JSON object proving control of the
+ * block - a self-contained JSON object proving control of the
  * client's long-term identity key, encrypted under the freshly
  * derived `K_enc_c2s` so a passive observer sees only opaque
  * ciphertext.

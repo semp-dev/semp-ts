@@ -111,7 +111,7 @@ export interface StagedHeldStage {
 
 /**
  * One envelope held in the staged-delivery queue per §3.2.2. The
- * envelope itself is NOT stored twice — this record is the
+ * envelope itself is NOT stored twice - this record is the
  * per-stage pointer set the server maintains.
  */
 export interface StagedHeld {

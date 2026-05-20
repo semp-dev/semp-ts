@@ -70,7 +70,7 @@ describe("lookupTXT", () => {
         "_semp._tcp.example.com": [
           "spf1=...",
           "v=semp1;c=ws,h2",
-          "v=semp1;c=quic", // ignored — first match wins
+          "v=semp1;c=quic", // ignored - first match wins
         ],
       },
     });

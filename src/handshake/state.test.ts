@@ -1,6 +1,6 @@
 /**
  * Tests for the stateful handshake `HandshakeClient` /
- * `HandshakeServer` classes — the explicit state-machine API
+ * `HandshakeServer` classes - the explicit state-machine API
  * that the high-level `runClient` / `runServer` wraps. Drives both
  * sides manually to exercise the same flow.
  *

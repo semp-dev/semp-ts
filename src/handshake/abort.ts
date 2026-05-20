@@ -44,7 +44,7 @@ export function isChallengeInvalid(err: unknown): err is ChallengeInvalidError {
 /**
  * Build an unsigned client-initiator abort message per §2.2a.6.
  *
- * The wire shape is `party: "client"` with no `server_signature` —
+ * The wire shape is `party: "client"` with no `server_signature` -
  * the initiator has not authenticated to the server at this point
  * and MUST NOT do so as part of an abort.
  *

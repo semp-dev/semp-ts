@@ -1,5 +1,5 @@
 /**
- * Brief tests — focused on the BCC fan-out helper.
+ * Brief tests - focused on the BCC fan-out helper.
  *
  * @module
  */
@@ -39,7 +39,7 @@ describe("splitForBCC", () => {
     const out = splitForBCC(b);
     expect(out).toHaveLength(3);
 
-    // Copy 0: visible — bcc absent
+    // Copy 0: visible - bcc absent
     expect(out[0]?.bcc).toBeUndefined();
     expect(out[0]?.to).toEqual(b.to);
     expect(out[0]?.cc).toEqual(b.cc);

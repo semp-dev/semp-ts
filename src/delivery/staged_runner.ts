@@ -170,7 +170,7 @@ export class StagedRunner {
    * `submitterDeviceId` is the device_id bound to the session that
    * delivered the disposition; it MUST equal `d.device_id`.
    *
-   * Idempotent on repeats from the same device — keeps the FIRST
+   * Idempotent on repeats from the same device - keeps the FIRST
    * disposition (conservative aggregation).
    */
   ingestDisposition(
@@ -345,7 +345,7 @@ export class StagedRunner {
       });
     }
     if (rebuilt.length === 0) {
-      // No stages remain — let the next tick detect completion.
+      // No stages remain - let the next tick detect completion.
       rec.stages = [];
       return;
     }

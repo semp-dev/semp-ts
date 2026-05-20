@@ -3,8 +3,8 @@
  *
  * Rekey messages are AEAD-encrypted under the CURRENT session's
  * directional keys. Receiving a valid sealed rekey is itself the
- * authentication — only a holder of the live session keys can
- * forge one — so the rekey messages carry no separate identity
+ * authentication - only a holder of the live session keys can
+ * forge one - so the rekey messages carry no separate identity
  * signature.
  *
  * Wire shape:
@@ -26,7 +26,7 @@
  *
  * where LP(x) prepends a 4-byte big-endian length to x. Mixing the
  * MAC key into the AAD ensures that compromising the encryption
- * key alone is insufficient — an attacker would also need the MAC
+ * key alone is insufficient - an attacker would also need the MAC
  * key, which satisfies the spec's "MACed under the MAC key"
  * requirement.
  *

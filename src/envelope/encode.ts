@@ -6,7 +6,7 @@
  * (`Content-Type: application/semp-envelope`) and for storage as a
  * `.semp` file.
  *
- * `encodeEnvelope` does NOT produce the canonical form — use
+ * `encodeEnvelope` does NOT produce the canonical form - use
  * {@link "./canonical".canonicalEnvelopeBytes} for the byte stream
  * consumed by signature and MAC computation.
  *
@@ -23,11 +23,11 @@ export const EnvelopeFileExtension = ".semp";
 
 /**
  * Wire JSON serialization of `env`. UTF-8, no BOM, no trailing
- * newline — the byte sequence is suitable for transport bodies and
+ * newline - the byte sequence is suitable for transport bodies and
  * for direct `.semp` file content.
  */
 export function encodeEnvelope(env: Envelope): Uint8Array {
-  // Plain JSON — NOT canonical. Used for transport, not signing.
+  // Plain JSON - NOT canonical. Used for transport, not signing.
   return new TextEncoder().encode(JSON.stringify(env));
 }
 

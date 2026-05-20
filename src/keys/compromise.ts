@@ -3,7 +3,7 @@
  *
  * Revoking a device with reason `key_compromise` MUST be done in
  * the same transaction as rotating to a new identity key plus a new
- * encryption key — the compromised device held the shared identity
+ * encryption key - the compromised device held the shared identity
  * private key, so the adversary holds it too. A partial cascade
  * (device revoked but identity key not rotated) leaves the account
  * vulnerable and is a specification violation.
@@ -87,7 +87,7 @@ export interface CompromiseRotationInput {
   userId: string;
   /** Device being revoked. */
   compromisedDeviceId: string;
-  /** Device producing the cascade — recorded as `revoked_by_device_id`. */
+  /** Device producing the cascade - recorded as `revoked_by_device_id`. */
   revokingDeviceId: string;
 
   /** 32-byte Ed25519 seed for the prior identity key. */

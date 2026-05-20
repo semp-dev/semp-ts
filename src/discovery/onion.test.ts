@@ -13,7 +13,7 @@ import {
 
 // A canonical-shape v3 onion identifier: 56 chars in [a-z2-7].
 const v3Label = "abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrstuvwx";
-// A v2-shape (16 chars) — must be rejected.
+// A v2-shape (16 chars) - must be rejected.
 const v2Label = "abcdefghij234567";
 
 describe("isOnionDomain", () => {

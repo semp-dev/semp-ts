@@ -83,7 +83,7 @@ describe("envelope.compose", () => {
       ephemeralX25519Priv: decodeHex(inp.ephemeral_priv_enclosure_for_client_hex as string),
     });
 
-    // Postmark fields aren't pinned individually — pull them from
+    // Postmark fields aren't pinned individually - pull them from
     // the expected envelope so the test focuses on computed bytes
     // (signature, MAC, ciphertext, wraps) rather than trivially
     // copied scalars.

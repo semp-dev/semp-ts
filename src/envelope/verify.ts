@@ -23,7 +23,7 @@ const EnvelopePrefix = "SEMP-ENVELOPE:";
  * true when the Ed25519 signature over the canonical envelope bytes
  * (prefixed with `SEMP-ENVELOPE:`) verifies. Does NOT cross-check
  * that the supplied public key actually belongs to the
- * `postmark.from_domain` — that lookup is the caller's responsibility.
+ * `postmark.from_domain` - that lookup is the caller's responsibility.
  */
 export function verifySealSignature(
   env: Envelope,
