@@ -34,7 +34,11 @@ import {
   PersistentSilentDefaults,
 } from "../../src/delivery/persistent_silent.js";
 import {
-  CredibilityLedger,
+  type StatusMessage,
+  signStatusMessage,
+  verifyStatusMessage,
+} from "../../src/delivery/status_message.js";
+import {
   EvidenceHashMismatchError,
   MaxEvidenceBytes,
   MaxObservationBytes,
@@ -42,9 +46,12 @@ import {
   type Observation,
   ObservationOversizedError,
   type ReciprocityMode,
+  type References,
   checkObservationSize,
+  signReferences,
   validateEvidenceFields,
   verifyEvidenceBytes,
+  verifyReferences,
 } from "../../src/reputation/index.js";
 
 import {
@@ -390,35 +397,65 @@ export function handleTrustObservation(entry: VectorEntry): void {
 }
 
 // ---------------------------------------------------------------------------
-// reputation-references + status-config (shape-only stubs)
+// reputation-references / valid (decision 15)
 
 export function handleReputationReferences(entry: VectorEntry): void {
   const inputs = entry.inputs;
-  if (!isRecord(inputs)) {
-    throw new Error(`${entry.id}: missing inputs`);
+  const expected = entry.expected;
+  if (!isRecord(inputs) || !isRecord(expected)) {
+    throw new Error(`${entry.id}: missing inputs or expected`);
   }
-  const pre = getField(inputs, "references_pre_sign_json");
-  if (isRecord(pre)) {
-    expect(pre.type).toBe("SEMP_REPUTATION_REFERENCES");
-    const refs = pre.references;
-    expect(Array.isArray(refs)).toBe(true);
+  const domainSeed = decodeHex(getString(inputs, "domain_seed_hex"));
+  const domainPub = decodeHex(getString(inputs, "domain_pub_hex"));
+  const keyId = getString(inputs, "domain_key_id");
+  const preRaw = getField(inputs, "references_pre_sign_json");
+  if (!isRecord(preRaw)) {
+    throw new Error(`${entry.id}: references_pre_sign_json missing`);
   }
+  const refs = JSON.parse(JSON.stringify(preRaw)) as References;
+  signReferences(refs, domainSeed, keyId);
+
+  // Cross-check produced signature against pinned expected value.
+  const expRaw = getField(expected, "signed_references_json");
+  if (isRecord(expRaw)) {
+    const expSig = (expRaw.signature as { value?: string } | undefined)?.value;
+    if (typeof expSig === "string" && expSig !== "") {
+      expect(refs.signature.value).toBe(expSig);
+    }
+  }
+  expect(verifyReferences(refs, domainPub)).toBe(true);
 }
+
+// ---------------------------------------------------------------------------
+// status-config / valid (decision 15)
 
 export function handleStatusConfig(entry: VectorEntry): void {
   const inputs = entry.inputs;
-  if (!isRecord(inputs)) {
-    throw new Error(`${entry.id}: missing inputs`);
+  const expected = entry.expected;
+  if (!isRecord(inputs) || !isRecord(expected)) {
+    throw new Error(`${entry.id}: missing inputs or expected`);
   }
-  const pre = getField(inputs, "update_pre_sign_json");
-  if (isRecord(pre)) {
-    expect(pre.type).toBe("SEMP_STATUS");
-    expect(typeof pre.user_id).toBe("string");
+  const deviceSeed = decodeHex(getString(inputs, "device_seed_hex"));
+  const devicePub = decodeHex(getString(inputs, "device_pub_hex"));
+  const keyId = getString(inputs, "device_key_id");
+  const preRaw = getField(inputs, "update_pre_sign_json");
+  if (!isRecord(preRaw)) {
+    throw new Error(`${entry.id}: update_pre_sign_json missing`);
   }
+  const msg = JSON.parse(JSON.stringify(preRaw)) as StatusMessage;
+  signStatusMessage(msg, deviceSeed, keyId);
+
+  const expRaw = getField(expected, "signed_update_json");
+  if (isRecord(expRaw)) {
+    const expSig = (expRaw.signature as { value?: string } | undefined)?.value;
+    if (typeof expSig === "string" && expSig !== "") {
+      expect(msg.signature.value).toBe(expSig);
+    }
+  }
+  expect(verifyStatusMessage(msg, devicePub)).toBe(true);
 }
 
 // Suppress unused imports kept for future expansion.
-void CredibilityLedger;
 void MinPublishVolumeEnvelopes;
 
 function encodeBase64(bytes: Uint8Array): string {

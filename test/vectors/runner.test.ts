@@ -15,12 +15,13 @@
  * Reference: semp-spec/vectors/README.md.
  */
 
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 
 import {
   type VectorEntry,
+  type VectorFile,
   bytesEqual,
   decodeHex,
   decodeBase64,
@@ -242,20 +243,28 @@ describe("vectors", () => {
     const path = join(dir, name);
     describe(name, () => {
       const file = loadVectorFile(path);
-      const handler = dispatch[file.category];
-      // Cross-reference files like must-reject-index.json don't
-      // carry a per-entry `vectors` array; nothing to dispatch.
-      if (!Array.isArray(file.vectors) || file.vectors.length === 0) {
-        test.skip(`${file.category}: cross-reference file, no per-vector dispatch`, () => {});
+      // must-reject-index.json is a generated cross-reference: it
+      // has no per-entry vectors array; its content lives in
+      // top-level `flat` / `by_class` arrays. Walk those and verify
+      // each referenced vector exists in its source file with the
+      // must_reject flag set.
+      if (file.category === "must-reject-index") {
+        test("cross-reference resolves to vectors flagged must_reject", () => {
+          verifyMustRejectIndex(dir, path);
+        });
         return;
+      }
+      const handler = dispatch[file.category];
+      if (!Array.isArray(file.vectors) || file.vectors.length === 0) {
+        throw new Error(
+          `${file.category}: empty vectors array and no special-case dispatch`,
+        );
       }
       for (const entry of file.vectors) {
         if (handler === undefined) {
-          test.skip(
-            `${entry.id} — category "${file.category}" handler TODO (spec ${file.spec_reference})`,
-            () => {},
+          throw new Error(
+            `${entry.id}: category "${file.category}" has no dispatched handler`,
           );
-          continue;
         }
         test(entry.id, () => {
           handler(entry);
@@ -264,6 +273,54 @@ describe("vectors", () => {
     });
   }
 });
+
+function verifyMustRejectIndex(dir: string, indexPath: string): void {
+  const raw = readFileSync(indexPath, "utf8");
+  const data = JSON.parse(raw) as {
+    flat: Array<{
+      file: string;
+      id: string;
+      rejection_class: string;
+      pointer: string;
+    }>;
+    by_class: Array<{ rejection_class: string; entries: unknown[] }>;
+    summary: { total_must_reject_vectors: number; rejection_classes: string[] };
+  };
+  expect(Array.isArray(data.flat)).toBe(true);
+  expect(data.flat.length).toBeGreaterThan(0);
+  expect(data.flat.length).toBe(data.summary.total_must_reject_vectors);
+  expect(data.by_class.length).toBe(data.summary.rejection_classes.length);
+  // The class set in by_class MUST equal the class set in summary.
+  const summaryClasses = [...data.summary.rejection_classes].sort();
+  const byClassClasses = data.by_class.map((c) => c.rejection_class).sort();
+  expect(byClassClasses).toEqual(summaryClasses);
+
+  // For each entry, load the referenced file and confirm the
+  // vector id is present with must_reject: true and a matching
+  // rejection_class.
+  const cache: Record<string, VectorFile> = {};
+  for (const entry of data.flat) {
+    const targetPath = join(dir, entry.file);
+    if (cache[entry.file] === undefined) {
+      cache[entry.file] = loadVectorFile(targetPath);
+    }
+    const targetFile = cache[entry.file];
+    expect(targetFile, `index references missing file ${entry.file}`).toBeDefined();
+    const targetVec = targetFile?.vectors.find((v) => v.id === entry.id);
+    expect(
+      targetVec,
+      `index entry ${entry.pointer} not found in ${entry.file}`,
+    ).toBeDefined();
+    expect(
+      targetVec?.must_reject,
+      `${entry.pointer} must_reject flag missing or false`,
+    ).toBe(true);
+    expect(
+      targetVec?.rejection_class,
+      `${entry.pointer} rejection_class mismatch`,
+    ).toBe(entry.rejection_class);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Layer 1 handlers
