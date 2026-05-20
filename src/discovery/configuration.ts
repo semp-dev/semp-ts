@@ -55,9 +55,29 @@ export interface ConfigEndpoints {
   backup?: string;
   migration?: string;
   transparency_log?: string;
-  attachment_storage?: string;
   /** Forward-compatible: any unknown endpoint URL keys land here. */
   [key: string]: string | TransportEndpoints | undefined;
+}
+
+/**
+ * Trust-gossip reciprocity policy mode per DISCOVERY.md §3.1.5 /
+ * DELIVERY.md §12.1. A peer that enforces reciprocity MUST
+ * disclose its policy in the configuration document so prospective
+ * consumers can capability-negotiate before fetching.
+ *
+ *  - "none": no reciprocity requirement.
+ *  - "lenient": prefers reciprocity but serves non-publishers; MAY
+ *    weight their observations lower.
+ *  - "strict": refuses to serve consumers that do not meet
+ *    `minimum_publish_volume` across `evaluation_window_days`.
+ */
+export type ReciprocityMode = "none" | "lenient" | "strict";
+
+/** Reciprocity policy disclosure per §3.1.5. */
+export interface ReciprocityPolicy {
+  mode: ReciprocityMode;
+  minimum_publish_volume?: number;
+  evaluation_window_days?: number;
 }
 
 /** Operational limits per §3.1.3. */
@@ -84,6 +104,7 @@ export interface Configuration {
   suites: string[];
   limits: ConfigLimits;
   extensions?: ConfigExtension[];
+  reciprocity?: ReciprocityPolicy;
   /** Forward-compatible: unknown top-level fields preserved here. */
   [key: string]: unknown;
 }

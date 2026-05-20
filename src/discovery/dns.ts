@@ -14,7 +14,12 @@
 
 import { type TXTCapabilities, parseTXTCapabilities } from "./txt.js";
 
-/** A parsed _semp._tcp.<domain> SRV record per §2.1. */
+/**
+ * A parsed SEMP SRV record per §2.1. Returned by both
+ * {@link lookupSRV} (the standard `_semp._tcp.<domain>` record) and
+ * {@link lookupSRVUDP} (the optional `_semp._udp.<domain>` record
+ * that operators MAY publish to advertise a distinct QUIC target).
+ */
 export interface SRVRecord {
   priority: number;
   weight: number;
@@ -129,6 +134,51 @@ export async function lookupSRV(
   const name = `_semp._tcp.${domain}`;
   const recs = await dns.lookupSRV(name);
   return [...recs].sort((a, b) => a.priority - b.priority);
+}
+
+/**
+ * Look up the optional `_semp._udp.<domain>` SRV records per §2.1.
+ * Operators MAY publish this record when they want to advertise a
+ * distinct UDP target for QUIC (different host/port than the TCP
+ * target). Clients selecting QUIC MUST prefer it over the
+ * `_semp._tcp` target when present. When absent the QUIC endpoint
+ * defaults to the `_semp._tcp` target's host:port, which is the
+ * common case.
+ *
+ * Returns an empty array when no `_udp` record is published.
+ */
+export async function lookupSRVUDP(
+  domain: string,
+  lookup?: DNSLookup,
+): Promise<SRVRecord[]> {
+  const dns = lookup ?? (await defaultDNSLookup());
+  const name = `_semp._udp.${domain}`;
+  const recs = await dns.lookupSRV(name);
+  return [...recs].sort((a, b) => a.priority - b.priority);
+}
+
+/**
+ * Resolve the SRV record a QUIC-capable client should use for
+ * `domain`. Prefers the optional `_semp._udp` record when present
+ * (operator-specified distinct UDP target). Otherwise falls back to
+ * the `_semp._tcp` target's host:port per DISCOVERY.md §2.1.
+ *
+ * Returns null when neither record exists.
+ */
+export async function quicTarget(
+  domain: string,
+  lookup?: DNSLookup,
+): Promise<SRVRecord | null> {
+  const dns = lookup ?? (await defaultDNSLookup());
+  const udp = await lookupSRVUDP(domain, dns);
+  if (udp.length > 0) {
+    return udp[0] ?? null;
+  }
+  const tcp = await lookupSRV(domain, dns);
+  if (tcp.length > 0) {
+    return tcp[0] ?? null;
+  }
+  return null;
 }
 
 /**

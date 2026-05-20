@@ -15,6 +15,8 @@ export {
   type ConfigExtension,
   type ConfigLimits,
   type Configuration,
+  type ReciprocityMode,
+  type ReciprocityPolicy,
   type TransportEndpoints,
   ConfigurationType,
   WellKnownMaxBytes,
@@ -50,7 +52,9 @@ export {
   defaultDNSLookup,
   lookupMX,
   lookupSRV,
+  lookupSRVUDP,
   lookupTXT,
+  quicTarget,
 } from "./dns.js";
 
 export {
