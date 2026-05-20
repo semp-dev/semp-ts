@@ -19,8 +19,27 @@ export const KeysRequestVersion = "1.0.0";
 /** Step discriminator for SEMP_KEYS messages. */
 export type KeysRequestStep = "request" | "response";
 
-/** Per-address lookup status per CLIENT.md §5.4.5. */
-export type KeysResultStatus = "found" | "not_found" | "error";
+/**
+ * Per-address lookup status per draft-gokce-semp-client §6.4. The
+ * set mirrors the submission-time status vocabulary so the client
+ * can share dispatch logic between key fetch and submission.
+ *
+ *  - "found": the home server returned a current key set.
+ *  - "not_found": the address is registered with the home server
+ *    but has no current published key.
+ *  - "legacy_required": the address belongs to a domain that does
+ *    not run SEMP; client SHOULD fall back to legacy interop.
+ *  - "recipient_not_found": no record of the address at the home
+ *    server.
+ *  - "error": the lookup failed for a transient or unspecified
+ *    reason. `error_reason` carries the diagnostic.
+ */
+export type KeysResultStatus =
+  | "found"
+  | "not_found"
+  | "legacy_required"
+  | "recipient_not_found"
+  | "error";
 
 /** A single key record per KEY.md §3 / §10.6. */
 export interface KeyRecord {

@@ -56,6 +56,17 @@ export {
 } from "./credibility.js";
 
 export {
+  type ReferenceEntry,
+  type References,
+  ReferencesPrefix,
+  ReferencesType,
+  ReferencesVersion,
+  signReferences,
+  validateReferences,
+  verifyReferences,
+} from "./references.js";
+
+export {
   applyBucketing,
   bucketize,
   dedupeAbuseCategories,
