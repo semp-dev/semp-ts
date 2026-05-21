@@ -53,6 +53,7 @@ import {
   type Capabilities,
   type FederationInitiatorSession,
   type FederationPolicy,
+  type FederationSuite,
   FederationInitiator,
 } from "../handshake/index.js";
 import type { Transport } from "../transport/index.js";
@@ -124,6 +125,14 @@ export interface ForwarderConfig {
    * Defaults to `{ encryption_algorithms: ["x25519-chacha20-poly1305"], extensions: [] }`.
    */
   capabilities?: Capabilities;
+  /**
+   * Algorithm suite for outbound federation handshakes. Either
+   * `"x25519-chacha20-poly1305"` (baseline) or `"pq-kyber768-x25519"`
+   * (hybrid PQ). Should align with one of the entries in
+   * {@link capabilities}. Defaults to baseline for backwards
+   * compatibility.
+   */
+  suite?: FederationSuite;
   /** Policy hook. Defaults to `acceptAllPolicies`. */
   policyAcceptor?: (policy: FederationPolicy) => string | null;
 }
@@ -262,7 +271,7 @@ export class Forwarder {
 
     const transport = await this.cfg.dial(endpoint);
     const initiator = new FederationInitiator({
-      suite: "x25519-chacha20-poly1305",
+      suite: this.cfg.suite ?? "x25519-chacha20-poly1305",
       capabilities: this.cfg.capabilities ?? {
         encryption_algorithms: ["x25519-chacha20-poly1305"],
         extensions: [],

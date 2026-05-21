@@ -25,7 +25,11 @@
 import { marshal as canonicalMarshal } from "../canonical/index.js";
 import {
   type SessionKeys,
+  HybridPublicKeySize,
   deriveSessionKeysWithResumption,
+  hybridDecapsulate,
+  hybridEncapsulate,
+  hybridGenerateKeyPair,
   newHKDFSHA512,
   x25519Agree,
   x25519PublicKey,
@@ -47,6 +51,14 @@ import {
   HandshakePrefix,
   HandshakeVersion,
 } from "./messages.js";
+
+/**
+ * Algorithm suites the federation handshake supports. Mirrors the
+ * client handshake's {@link "./driver".HandshakeSuite}.
+ */
+export type FederationSuite =
+  | "x25519-chacha20-poly1305"
+  | "pq-kyber768-x25519";
 
 /** Wire-level discriminators (shared with the client handshake). */
 export const FederationMessageType = "SEMP_HANDSHAKE";
@@ -267,8 +279,15 @@ export const acceptAllPolicies: PolicyAcceptor = () => null;
 
 /** Configuration for {@link FederationInitiator}. */
 export interface FederationInitiatorConfig {
-  /** Algorithm suite. v1: `"x25519-chacha20-poly1305"`. */
-  suite: "x25519-chacha20-poly1305";
+  /**
+   * Algorithm suite. Either `"x25519-chacha20-poly1305"` (baseline)
+   * or `"pq-kyber768-x25519"` (hybrid post-quantum); the latter
+   * generates a 1216-byte hybrid ephemeral pub and decapsulates the
+   * responder's 1120-byte hybrid KEM ciphertext per ENVELOPE.md
+   * §4.4.1. The negotiated suite recorded on the wire is taken from
+   * this field; for multi-suite operators, run multiple initiators.
+   */
+  suite: FederationSuite;
   /** Capability set to advertise. */
   capabilities: Capabilities;
   /** Initiator's own domain. */
@@ -325,9 +344,12 @@ export class FederationInitiator {
   private resumeNonce: Uint8Array | null = null;
 
   constructor(cfg: FederationInitiatorConfig) {
-    if (cfg.suite !== "x25519-chacha20-poly1305") {
+    if (
+      cfg.suite !== "x25519-chacha20-poly1305" &&
+      cfg.suite !== "pq-kyber768-x25519"
+    ) {
       throw new Error(
-        `handshake: federation initiator only supports baseline suite, got ${cfg.suite}`,
+        `handshake: federation initiator unknown suite ${JSON.stringify(cfg.suite)}`,
       );
     }
     if (cfg.localDomain === "") {
@@ -358,10 +380,27 @@ export class FederationInitiator {
     if (this.initCanonical !== null) {
       throw new Error("handshake: federation initiator init already called");
     }
-    if (this.ephPriv === null) {
-      this.ephPriv = randomBytes(32);
+    // Suite branch: baseline generates a 32-byte X25519 ephemeral
+    // pub; PQ generates a 1216-byte hybrid (kyberPub || x25519Pub)
+    // ephemeral pub. The responder branches symmetrically: baseline
+    // ECDH against the responder's X25519 eph pub, PQ hybrid
+    // decapsulate against the responder's KEM ciphertext.
+    const isPQ = this.cfg.suite === "pq-kyber768-x25519";
+    if (isPQ) {
+      if (this.cfg.initiatorEphemeralPriv !== undefined) {
+        throw new Error(
+          "handshake: federation initiator PQ ephemeral pinning not supported",
+        );
+      }
+      const kp = hybridGenerateKeyPair();
+      this.ephPriv = kp.secretKey;
+      this.ephPub = kp.publicKey;
+    } else {
+      if (this.ephPriv === null) {
+        this.ephPriv = randomBytes(32);
+      }
+      this.ephPub = x25519PublicKey(this.ephPriv);
     }
-    this.ephPub = x25519PublicKey(this.ephPriv);
     if (this.nonce === null) {
       this.nonce = randomBytes(32);
     }
@@ -477,7 +516,22 @@ export class FederationInitiator {
       );
     }
 
-    const shared = x25519Agree(this.ephPriv, serverEphPub);
+    // Suite branch: for baseline serverEphPub is a 32-byte X25519
+    // pub and we run ECDH; for PQ it's a 1120-byte hybrid KEM
+    // ciphertext (kyberCt || responderX25519Pub) and we hybrid-
+    // decapsulate against the local hybrid ephemeral private key.
+    const isPQ = this.cfg.suite === "pq-kyber768-x25519";
+    let shared: Uint8Array;
+    if (isPQ) {
+      if (this.ephPub === null || this.ephPub.length !== HybridPublicKeySize) {
+        throw new Error(
+          `handshake: federation PQ ephemeral pub size mismatch (have ${this.ephPub?.length ?? 0}, want ${HybridPublicKeySize})`,
+        );
+      }
+      shared = hybridDecapsulate(serverEphPub, this.ephPriv);
+    } else {
+      shared = x25519Agree(this.ephPriv, serverEphPub);
+    }
     const kdf = newHKDFSHA512();
     this.sessionKeys = deriveSessionKeysWithResumption(
       kdf,
@@ -756,7 +810,13 @@ export class FederationInitiator {
 
 /** Configuration for {@link FederationResponder}. */
 export interface FederationResponderConfig {
-  suite: "x25519-chacha20-poly1305";
+  /**
+   * Algorithm suite. Either `"x25519-chacha20-poly1305"` (baseline)
+   * or `"pq-kyber768-x25519"` (hybrid post-quantum). The responder
+   * accepts only this suite during negotiation; multi-suite support
+   * requires running multiple responders.
+   */
+  suite: FederationSuite;
   capabilities: Capabilities;
   /** Responder's own domain. */
   localDomain: string;
@@ -810,9 +870,12 @@ export class FederationResponder {
   private finalSession: FederationResponderSession | null = null;
 
   constructor(cfg: FederationResponderConfig) {
-    if (cfg.suite !== "x25519-chacha20-poly1305") {
+    if (
+      cfg.suite !== "x25519-chacha20-poly1305" &&
+      cfg.suite !== "pq-kyber768-x25519"
+    ) {
       throw new Error(
-        `handshake: federation responder only supports baseline suite, got ${cfg.suite}`,
+        `handshake: federation responder unknown suite ${JSON.stringify(cfg.suite)}`,
       );
     }
     if (cfg.localDomain === "") {
@@ -910,13 +973,34 @@ export class FederationResponder {
         `handshake: federation negotiated suite ${negotiated} != responder suite ${this.cfg.suite}`,
       );
     }
-    this.respEphPriv = this.cfg.responderEphemeralPriv ?? randomBytes(32);
-    const respEphPub = x25519PublicKey(this.respEphPriv);
+    // Suite branch: baseline derives a fresh X25519 keypair and runs
+    // ECDH against the initiator's 32-byte X25519 ephemeral pub. PQ
+    // hybrid-encapsulates against the initiator's 1216-byte hybrid
+    // pub, producing a 1120-byte KEM ciphertext that becomes the
+    // wire `server_ephemeral_key.key` and the shared secret. The
+    // responder holds no ephemeral private on the PQ path because
+    // Encapsulate produces the shared secret directly.
+    const isPQ = this.cfg.suite === "pq-kyber768-x25519";
+    let respEphPub: Uint8Array;
+    let shared: Uint8Array;
+    if (isPQ) {
+      if (this.cfg.responderEphemeralPriv !== undefined) {
+        throw new Error(
+          "handshake: federation responder PQ ephemeral pinning not supported",
+        );
+      }
+      const enc = hybridEncapsulate(clientEphPub);
+      respEphPub = enc.ciphertext;
+      shared = enc.sharedSecret;
+    } else {
+      this.respEphPriv = this.cfg.responderEphemeralPriv ?? randomBytes(32);
+      respEphPub = x25519PublicKey(this.respEphPriv);
+      shared = x25519Agree(this.respEphPriv, clientEphPub);
+    }
     const respEphKeyId = fingerprint(respEphPub);
     this.serverNonce = this.cfg.responderNonce ?? randomBytes(32);
     this.sessionId = this.cfg.generateSessionId();
 
-    const shared = x25519Agree(this.respEphPriv, clientEphPub);
     const kdf = newHKDFSHA512();
     this.sessionKeys = deriveSessionKeysWithResumption(
       kdf,

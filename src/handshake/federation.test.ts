@@ -93,6 +93,74 @@ describe("FederationInitiator + FederationResponder", () => {
     expect(encodeB64(ai.keys.macS2C)).toBe(encodeB64(br.keys.macS2C));
   });
 
+  test("PQ federation handshake: hybrid KEM derives identical session keys", async () => {
+    // Same shape as the baseline test, but with suite =
+    // pq-kyber768-x25519 on both sides. The initiator publishes a
+    // 1216-byte hybrid ephemeral pub; the responder hybrid-
+    // encapsulates against it and ships a 1120-byte KEM ciphertext;
+    // both sides derive the same session keys from the combined
+    // (kyberSS || x25519SS) shared secret per ENVELOPE.md §4.4.1.
+    const aSeed = seed(0xa2);
+    const aPub = publicKeyFromSeed(aSeed);
+    const bSeed = seed(0xb3);
+    const bPub = publicKeyFromSeed(bSeed);
+    const lookup = (domain: string): Uint8Array => {
+      if (domain === "alice.pq") return aPub;
+      if (domain === "bob.pq") return bPub;
+      throw new Error(`unknown domain ${domain}`);
+    };
+
+    const initiator = new FederationInitiator({
+      suite: "pq-kyber768-x25519",
+      capabilities: {
+        encryption_algorithms: ["pq-kyber768-x25519"],
+        extensions: [],
+      },
+      localDomain: "alice.pq",
+      localServerID: "01J7ALICEPQ00000000000000000",
+      localDomainSeed: aSeed,
+      peerDomainPubLookup: lookup,
+      peerDomain: "bob.pq",
+      domainProof: { method: "test-trust", data: "alice-attest" },
+    });
+    const responder = new FederationResponder({
+      suite: "pq-kyber768-x25519",
+      capabilities: {
+        encryption_algorithms: ["pq-kyber768-x25519"],
+        extensions: [],
+      },
+      localDomain: "bob.pq",
+      localServerID: "01J7BOBPQ0000000000000000000",
+      localDomainSeed: bSeed,
+      peerDomainPubLookup: lookup,
+      verifier: new TrustingDomainVerifier(),
+      policy: {
+        message_retention: "30d",
+        user_discovery: "allowed",
+        relay_allowed: false,
+      },
+      sessionTTL: 3600,
+      generateSessionId: () => "01J7TESTPQFEDSESSION00000000",
+    });
+
+    const initBytes = initiator.init();
+    const respBytes = await responder.onInit(initBytes);
+    const confirmBytes = initiator.onResponse(respBytes);
+    const acceptedBytes = responder.onConfirm(confirmBytes);
+    initiator.onAccepted(acceptedBytes);
+
+    const ai = initiator.session();
+    const br = responder.session();
+    expect(ai.sessionId).toBe("01J7TESTPQFEDSESSION00000000");
+    expect(br.sessionId).toBe(ai.sessionId);
+    expect(ai.peerDomain).toBe("bob.pq");
+    expect(br.peerDomain).toBe("alice.pq");
+    expect(encodeB64(ai.keys.encC2S)).toBe(encodeB64(br.keys.encC2S));
+    expect(encodeB64(ai.keys.encS2C)).toBe(encodeB64(br.keys.encS2C));
+    expect(encodeB64(ai.keys.macC2S)).toBe(encodeB64(br.keys.macC2S));
+    expect(encodeB64(ai.keys.macS2C)).toBe(encodeB64(br.keys.macS2C));
+  });
+
   test("policy rejection by initiator surfaces to caller", async () => {
     const aSeed = seed(0xc3);
     const bSeed = seed(0xd4);

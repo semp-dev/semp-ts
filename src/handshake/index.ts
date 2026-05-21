@@ -74,6 +74,7 @@ export {
   type FederationResponderSession,
   type FederationResponse,
   type FederationResume,
+  type FederationSuite,
   type PolicyAcceptor,
   type ServerInit,
   FederationInitiator,
