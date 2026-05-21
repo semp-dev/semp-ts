@@ -69,11 +69,18 @@ export function verify(
 
 /**
  * Compute the SEMP key fingerprint per `KEY.md` §3 - SHA-256 of
- * the raw 32-byte public key, lowercase-hex encoded. Used as the
+ * the raw public key bytes, lowercase-hex encoded. Used as the
  * `key_id` field everywhere keys are referenced.
+ *
+ * Accepts public keys of any non-empty length. Ed25519 identity
+ * keys are 32 bytes, X25519 baseline encryption keys are 32 bytes,
+ * Kyber768+X25519 hybrid encryption keys are 1216 bytes, and so on
+ * across the negotiated suite.
  */
 export function fingerprint(publicKey: Uint8Array): string {
-  expectLength("publicKey", publicKey, PublicKeySize);
+  if (publicKey.length === 0) {
+    throw new Error("keys: publicKey is empty");
+  }
   const sum = sha256(publicKey);
   let s = "";
   for (let i = 0; i < sum.length; i++) {

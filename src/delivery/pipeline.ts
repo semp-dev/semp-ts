@@ -30,7 +30,7 @@ import {
   verifySealSignature,
   verifySessionMAC,
 } from "../envelope/index.js";
-import { unwrap as sealUnwrap } from "../seal/index.js";
+import { type Suite, unwrap as sealUnwrap } from "../seal/index.js";
 
 import type { Acknowledgment, Visibility } from "./ack.js";
 import type {
@@ -471,6 +471,13 @@ function openBriefOnly(
   if (candidates.length === 0) {
     throw new Error("envelope: openBriefOnly: empty candidate list");
   }
+  // Suite is pinned in seal.algorithm at compose time; the home
+  // server unwraps under the same suite. Without this we always
+  // use baseline X25519 and reject every PQ envelope at step 6/7.
+  const suite = env.seal.algorithm as Suite;
+  if (suite !== "x25519-chacha20-poly1305" && suite !== "pq-kyber768-x25519") {
+    throw new Error(`envelope: openBriefOnly: unknown seal.algorithm ${suite}`);
+  }
   const errors: string[] = [];
   for (const c of candidates) {
     const wrapped = env.seal.brief_recipients[c.keyId];
@@ -479,7 +486,7 @@ function openBriefOnly(
     }
     try {
       const kBrief = sealUnwrap(
-        "x25519-chacha20-poly1305",
+        suite,
         c.privateKey,
         c.publicKey,
         wrapped,
