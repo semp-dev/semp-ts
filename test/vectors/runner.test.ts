@@ -95,6 +95,7 @@ import {
 } from "./handlers-wave5.js";
 
 import {
+  handleAbuseReportObservation,
   handleExtensionDefinitionDocumentURL,
   handleHTTP2UrlTemplates,
   handleKeyFetchStatusDispatch,
@@ -102,6 +103,7 @@ import {
   handleMigrationNotice,
   handlePersistentSilentCounter,
   handlePoWDifficultyCalibration,
+  handlePublicationEligibility,
   handleReciprocityPolicy,
   handleReputationReferences,
   handleSRVQuicUdpTarget,
@@ -212,6 +214,8 @@ const dispatch: Record<string, Handler> = {
   "status-config": handleStatusConfig,
   "trust-observation": handleTrustObservation,
   "validation-failures": handleValidationFailures,
+  "abuse-report": handleAbuseReportObservation,
+  "publication-eligibility": handlePublicationEligibility,
 };
 
 // Suppress unused warnings until later waves reach for these.

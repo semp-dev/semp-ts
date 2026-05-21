@@ -39,15 +39,22 @@ import {
   verifyStatusMessage,
 } from "../../src/delivery/status_message.js";
 import {
+  type AbuseReport,
+  AbuseReportType,
   EvidenceHashMismatchError,
   MaxEvidenceBytes,
   MaxObservationBytes,
+  type Metrics,
   MinPublishVolumeEnvelopes,
   type Observation,
   ObservationOversizedError,
   type ReciprocityMode,
   type References,
+  allMetricsZero,
   checkObservationSize,
+  eligibleForPublication,
+  isKnownAbuseCategory,
+  meetsPublishVolume,
   signReferences,
   validateEvidenceFields,
   verifyEvidenceBytes,
@@ -57,6 +64,7 @@ import {
 import {
   type VectorEntry,
   decodeHex,
+  getBool,
   getField,
   getInt,
   getOptionalString,
@@ -455,8 +463,67 @@ export function handleStatusConfig(entry: VectorEntry): void {
   expect(verifyStatusMessage(msg, devicePub)).toBe(true);
 }
 
-// Suppress unused imports kept for future expansion.
-void MinPublishVolumeEnvelopes;
+// ---------------------------------------------------------------------------
+// abuse-report / observation_record_abuse
+
+export function handleAbuseReportObservation(entry: VectorEntry): void {
+  const inputs = entry.inputs;
+  const expected = entry.expected;
+  if (!isRecord(inputs) || !isRecord(expected)) {
+    throw new Error(`${entry.id}: missing inputs or expected`);
+  }
+  const reportRaw = getField(inputs, "report_json");
+  if (!isRecord(reportRaw)) {
+    throw new Error(`${entry.id}: report_json missing`);
+  }
+  const report = reportRaw as unknown as AbuseReport;
+  expect(report.type).toBe(AbuseReportType);
+  expect(report.category).toBe("observation_record_abuse");
+  expect(isKnownAbuseCategory(report.category as string)).toBe(true);
+
+  // Cross-check the spec category set against the lib's union.
+  const cats = expected.categories_known_to_lib;
+  if (Array.isArray(cats)) {
+    for (const c of cats) {
+      expect(
+        isKnownAbuseCategory(c as string),
+        `spec category "${c as string}" not recognized by lib`,
+      ).toBe(true);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// publication-eligibility / threshold
+
+export function handlePublicationEligibility(entry: VectorEntry): void {
+  expect(MinPublishVolumeEnvelopes).toBe(16);
+  const samples = entry.samples ?? [];
+  for (let i = 0; i < samples.length; i++) {
+    const s = samples[i];
+    if (!isRecord(s)) {
+      continue;
+    }
+    const metrics = getField(s, "metrics") as unknown as Metrics;
+    const wantMeets = getBool(s, "expected_meets_publish_volume");
+    const wantEligible = getBool(s, "expected_eligible");
+    const label = getString(s, "label");
+    expect(
+      meetsPublishVolume(metrics),
+      `sample ${i} (${label}): meetsPublishVolume`,
+    ).toBe(wantMeets);
+    expect(
+      eligibleForPublication(metrics),
+      `sample ${i} (${label}): eligibleForPublication`,
+    ).toBe(wantEligible);
+    if (s.expected_all_zero !== undefined) {
+      expect(
+        allMetricsZero(metrics),
+        `sample ${i} (${label}): allMetricsZero`,
+      ).toBe(s.expected_all_zero as boolean);
+    }
+  }
+}
 
 function encodeBase64(bytes: Uint8Array): string {
   if (typeof Buffer !== "undefined") {
