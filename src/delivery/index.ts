@@ -238,3 +238,36 @@ export {
   type PeerDomainKeyLookup,
   Forwarder,
 } from "./forwarder.js";
+
+export {
+  PersistentSilentCounter,
+  PersistentSilentDefaults,
+} from "./persistent_silent.js";
+
+export {
+  type StatusMessage,
+  type StatusMessageSignature,
+  type StatusState,
+  type StatusVisibility,
+  type StatusVisibilityEntry,
+  type StatusVisibilityMode,
+  StatusMessagePrefix,
+  StatusMessageType,
+  StatusMessageVersion,
+  signStatusMessage,
+  validateStatusMessage,
+  verifyStatusMessage,
+} from "./status_message.js";
+
+export {
+  UpgradeCapabilityPresent,
+  UpgradeHeaderAddress,
+  UpgradeHeaderCapability,
+  UpgradeHeaderDomain,
+  UpgradeHeaderIdentity,
+} from "./upgrade_signal.js";
+
+export {
+  type DeviceSyncMarkerData,
+  DeviceSyncExtensionID,
+} from "./device_sync.js";
