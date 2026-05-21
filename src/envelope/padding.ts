@@ -23,10 +23,10 @@ import {
   selectSizeBucket,
 } from "./buckets.js";
 
-/** Exact base64 length of an Ed25519 signature (64 raw bytes → 88 chars). */
+/** Exact base64 length of an Ed25519 signature (64 raw bytes -> 88 chars). */
 export const Ed25519SignatureB64Len = 88;
 
-/** Exact base64 length of an HMAC-SHA-256 output (32 raw bytes → 44 chars). */
+/** Exact base64 length of an HMAC-SHA-256 output (32 raw bytes -> 44 chars). */
 export const HMACSHA256B64Len = 44;
 
 /**

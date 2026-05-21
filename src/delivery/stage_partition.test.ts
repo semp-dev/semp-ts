@@ -161,7 +161,7 @@ describe("partitionStages", () => {
   test("max_stage tally counts delegates with mode!=none even when sender rejected", () => {
     // Delegate's allow list rejects bob@example.com, but its mode is
     // unrestricted-with-allow == restricted; so the sender DOES match
-    // when allowed. Use restricted with empty allow → no match.
+    // when allowed. Use restricted with empty allow -> no match.
     const dir = makeDirectory([
       fullAccess("FA1", "PUB-FA1"),
       delegated("DEL1", "PUB-DEL1", "cert-1"),

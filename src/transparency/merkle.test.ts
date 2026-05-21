@@ -190,7 +190,7 @@ describe("consistency proof round-trip", () => {
         firstRoot,
         secondRoot,
       );
-      expect(ok, `${a}→${b}`).toBe(true);
+      expect(ok, `${a}->${b}`).toBe(true);
     });
   }
 

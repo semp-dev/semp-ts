@@ -6,17 +6,17 @@
  * domain identity in plaintext on both sides plus a domain-proof
  * verification step:
  *
- *   1. ServerInit (initiator → responder) carrying the initiator's
+ *   1. ServerInit (initiator -> responder) carrying the initiator's
  *      domain, ephemeral key, identity proof, and a {@link DomainProof}
  *      that the responder verifies via DNS / certificate / well-known.
- *   2. FederationResponse (responder → initiator) carrying the
+ *   2. FederationResponse (responder -> initiator) carrying the
  *      responder's identity material, the {@link DomainVerificationResult},
  *      negotiated capabilities, and the responder's
  *      {@link FederationPolicy}.
- *   3. FederationConfirm (initiator → responder) with the
+ *   3. FederationConfirm (initiator -> responder) with the
  *      confirmation hash and a {@link FederationAcceptance} block
  *      stating whether the initiator accepts the policy.
- *   4. FederationAccepted (responder → initiator) finalizing the
+ *   4. FederationAccepted (responder -> initiator) finalizing the
  *      session and (optionally) issuing a resumption ticket.
  *
  * @module

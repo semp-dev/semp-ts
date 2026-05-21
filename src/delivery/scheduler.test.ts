@@ -16,7 +16,7 @@ import {
 } from "./scheduler.js";
 
 describe("Scheduler.enqueue + tick happy path", () => {
-  test("delivered attempt → state=delivered, terminal", async () => {
+  test("delivered attempt -> state=delivered, terminal", async () => {
     const store = new InMemorySchedulerStore();
     let now = new Date("2026-05-08T10:00:00Z");
     const events: string[] = [];
@@ -39,7 +39,7 @@ describe("Scheduler.enqueue + tick happy path", () => {
     expect(events).toContain("alice@example.com:delivered");
   });
 
-  test("non-recoverable rejected → state=rejected", async () => {
+  test("non-recoverable rejected -> state=rejected", async () => {
     const store = new InMemorySchedulerStore();
     const now = new Date("2026-05-08T10:00:00Z");
     const deliver: DeliverFunc = async () => ({
@@ -58,7 +58,7 @@ describe("Scheduler.enqueue + tick happy path", () => {
     expect(q?.state).toBe("rejected");
   });
 
-  test("silent attempt → schedules next attempt with backoff", async () => {
+  test("silent attempt -> schedules next attempt with backoff", async () => {
     const store = new InMemorySchedulerStore();
     let now = new Date("2026-05-08T10:00:00Z");
     const deliver: DeliverFunc = async () => ({ status: "silent" });

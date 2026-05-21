@@ -149,7 +149,7 @@ describe("finalizationAt + isFinalizable", () => {
 });
 
 describe("Driver lifecycle", () => {
-  test("submit pending → tick finalizes after grace", async () => {
+  test("submit pending -> tick finalizes after grace", async () => {
     const store = new InMemoryClosureStore();
     const driver = new Driver({
       store,
@@ -274,8 +274,8 @@ describe("InMemoryClosureStore", () => {
   test("pruneFinalized evicts entries older than the cutoff", async () => {
     const store = new InMemoryClosureStore();
     // 180-day MinRetention cutoff against now=2026-12-01 is 2026-06-04.
-    // Alice (2024-01-01) is older → pruned.
-    // Bob (2026-09-01) is newer → kept.
+    // Alice (2024-01-01) is older -> pruned.
+    // Bob (2026-09-01) is newer -> kept.
     await store.putFinalized("alice@example.com", new Date("2024-01-01T00:00:00Z"));
     await store.putFinalized("bob@example.com", new Date("2026-09-01T00:00:00Z"));
     const now = new Date("2026-12-01T00:00:00Z");

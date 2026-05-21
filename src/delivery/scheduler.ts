@@ -9,11 +9,11 @@
  *   - Pulls due records from the {@link SchedulerStore}.
  *   - Runs {@link DeliverFunc} against each.
  *   - Updates state per the per-attempt outcome:
- *     - `delivered` → state = `delivered`, emit event.
- *     - `rejected` (non-recoverable) → state = `rejected`, emit event.
- *     - `rejected` (recoverable) / `silent` / transport failure →
+ *     - `delivered` -> state = `delivered`, emit event.
+ *     - `rejected` (non-recoverable) -> state = `rejected`, emit event.
+ *     - `rejected` (recoverable) / `silent` / transport failure ->
  *       schedule next attempt via `nextAttemptAt`.
- *     - Effective deadline reached → state = `expired`, emit event.
+ *     - Effective deadline reached -> state = `expired`, emit event.
  *
  * @module
  */
@@ -341,7 +341,7 @@ export class Scheduler {
       this.transitionTerminal(q, "rejected", now, res.reason);
       return;
     }
-    // Recoverable rejection or silent → schedule next attempt.
+    // Recoverable rejection or silent -> schedule next attempt.
     let next: Date;
     try {
       next = nextAttemptAt(this.retry, now, q.attempts - 1);
@@ -350,7 +350,7 @@ export class Scheduler {
       next = new Date(now.getTime() + 1_000);
     }
     if (next.getTime() > Date.parse(q.deadline)) {
-      // Next attempt would land past deadline → expire instead.
+      // Next attempt would land past deadline -> expire instead.
       this.transitionExpired(q, now);
       return;
     }

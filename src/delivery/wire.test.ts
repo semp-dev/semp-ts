@@ -206,7 +206,7 @@ describe("disposition primitives", () => {
     ).toBe("suppress");
   });
 
-  test("aggregateDispositions: empty (timeout) → advance per §3.2.4", () => {
+  test("aggregateDispositions: empty (timeout) -> advance per §3.2.4", () => {
     expect(aggregateDispositions([])).toBe("advance");
   });
 
@@ -234,7 +234,7 @@ describe("disposition primitives", () => {
     );
   });
 
-  test("isStageComplete: missing one disposition → not complete", () => {
+  test("isStageComplete: missing one disposition -> not complete", () => {
     const stage: StagedHeldStage = {
       stage: 1,
       pending_device_ids: ["d1", "d2"],

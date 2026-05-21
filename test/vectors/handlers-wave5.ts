@@ -128,7 +128,7 @@ function canonicalize(v: unknown): string {
 // The AAD is the canonical JSON of the item with ciphertext_hash,
 // aead_nonce, and extensions blanked. Routing through the canonical
 // marshaler (alphabetical key sort) is required for cross-language
-// interop — semp-go's struct-order json.Marshal was VR-5 in Phase 2.
+// interop -- semp-go's struct-order json.Marshal was VR-5 in Phase 2.
 
 export function handleLargeAttachment(entry: VectorEntry): void {
   switch (entry.id) {
@@ -166,7 +166,7 @@ function deriveAttachmentKey(
   // info = "semp-attachment:" || attachmentId, L = 32). The HKDF here
   // is HKDF-SHA-512.
   const info = new TextEncoder().encode(`semp-attachment:${attachmentId}`);
-  // Use Expand directly via @noble/hashes/hkdf — pass the
+  // Use Expand directly via @noble/hashes/hkdf -- pass the
   // already-extracted PRK (which is K_enclosure here).
   return expandHKDFSHA512(kEnclosure, info, 32);
 }
@@ -357,7 +357,7 @@ export function handleSealRoundtrip(entry: VectorEntry): void {
 
   // Send-side cross-check: compose with the pinned ephemeral inputs
   // and assert the bytes match wrapped_b64 byte-for-byte. This is
-  // the gating interop check on the wrap construction — both
+  // the gating interop check on the wrap construction -- both
   // directions of seal must match across implementations.
   switch (suiteStr) {
     case "x25519-chacha20-poly1305": {

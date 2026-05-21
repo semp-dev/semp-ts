@@ -44,8 +44,8 @@ export interface PoWChallenge {
 
 /**
  * Difficulty for a zero-reputation, age-known domain per §8.3.2:
- *  - age < {@link DomainAgeGateDays} → DifficultyBaseline (20)
- *  - age ≥ DomainAgeGateDays → DifficultyRelaxed (16)
+ *  - age < {@link DomainAgeGateDays} -> DifficultyBaseline (20)
+ *  - age ≥ DomainAgeGateDays -> DifficultyRelaxed (16)
  */
 export function difficultyForAge(ageDays: number): number {
   return ageDays < DomainAgeGateDays ? DifficultyBaseline : DifficultyRelaxed;
@@ -54,9 +54,9 @@ export function difficultyForAge(ageDays: number): number {
 /**
  * Difficulty for a domain whose reputation has been summarized as
  * `assessment` per §8.3.2:
- *  - "trusted" / "neutral" / "" → 0 (no PoW required)
- *  - "suspicious"               → DifficultySuspicious (22)
- *  - "hostile"                  → DifficultyHostile (26)
+ *  - "trusted" / "neutral" / "" -> 0 (no PoW required)
+ *  - "suspicious"               -> DifficultySuspicious (22)
+ *  - "hostile"                  -> DifficultyHostile (26)
  *
  * A return of 0 MUST be interpreted as "no challenge required".
  */

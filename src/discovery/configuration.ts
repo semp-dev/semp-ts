@@ -36,7 +36,7 @@ export const ConfigurationType = "SEMP_CONFIGURATION";
  */
 export const WellKnownMaxBytes = 64 * 1024;
 
-/** Endpoint group: transport-identifier → URL. */
+/** Endpoint group: transport-identifier -> URL. */
 export type TransportEndpoints = Record<string, string>;
 
 /** Endpoints object per §3.1.1. */

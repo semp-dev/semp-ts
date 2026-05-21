@@ -143,7 +143,7 @@ async function runFakeResponder(
 }
 
 /**
- * Build a static-pin EndpointResolver from a `domain → endpoint` map.
+ * Build a static-pin EndpointResolver from a `domain -> endpoint` map.
  * Mirrors what an operator would write to inject a known peer.
  */
 function staticEndpoints(
@@ -159,7 +159,7 @@ function staticEndpoints(
 }
 
 /**
- * Build a static-pin PeerDomainKeyLookup from a `domain → publicKey`
+ * Build a static-pin PeerDomainKeyLookup from a `domain -> publicKey`
  * map. Mirrors what an operator would write when peer keys are
  * pre-loaded at startup rather than lazily fetched via KEY.md.
  */

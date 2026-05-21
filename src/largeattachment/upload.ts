@@ -166,7 +166,7 @@ export class CiphertextHashMismatchError extends Error {
 }
 
 // ---------------------------------------------------------------------------
-// Suite → AEAD mapping per §3.2
+// Suite -> AEAD mapping per §3.2
 
 function aeadAlgorithmFor(
   suite: AttachmentSuite,
@@ -203,7 +203,7 @@ function newULID(): string {
   bits[5] = Number(ms & 0xffn);
   globalThis.crypto.getRandomValues(bits.subarray(6));
 
-  // Crockford base32 encoding of 16 bytes → 26 chars.
+  // Crockford base32 encoding of 16 bytes -> 26 chars.
   // Treat bits as two big-endian 64-bit words.
   let u = 0n;
   for (let i = 0; i < 8; i++) {

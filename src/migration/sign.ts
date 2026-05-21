@@ -175,8 +175,8 @@ export function verifyMigrationPass(
 }
 
 /**
- * Verify all signatures in §3.3 order: old identity → new identity
- * → new domain → old domain. Returns true on full success.
+ * Verify all signatures in §3.3 order: old identity -> new identity
+ * -> new domain -> old domain. Returns true on full success.
  *
  * `oldDomainPub` is consulted only in cooperative mode; pass any
  * value (including a zero-length array) for unilateral records.

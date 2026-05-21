@@ -6,7 +6,7 @@
  *     lower+space-join for recovery codes per §3.2.
  *   - {@link deriveBundleKey}: Argon2id over the normalized secret
  *     yields the 32-byte K_bundle per §2.5.
- *   - {@link deriveRecoverySignKey}: HKDF-Expand(K_bundle, ...) →
+ *   - {@link deriveRecoverySignKey}: HKDF-Expand(K_bundle, ...) ->
  *     Ed25519 (recovery_sign_sk, recovery_verify_pk) per §3.3.
  *   - {@link encryptBundlePayload} / {@link decryptBundlePayload}:
  *     XChaCha20-Poly1305 per §2.5.

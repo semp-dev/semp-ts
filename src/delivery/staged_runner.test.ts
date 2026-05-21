@@ -103,7 +103,7 @@ describe("StagedRunner", () => {
     expect(runner.isHeld("env-1")).toBe(false);
   });
 
-  test("all stages advance → complete", async () => {
+  test("all stages advance -> complete", async () => {
     const { runner, events } = makeRunner();
     await runner.hold("env-1", [emptyStage(1, ["d1"])]);
     runner.ingestDisposition("env-1", "d1", makeDisposition("d1", "advance"));
@@ -112,7 +112,7 @@ describe("StagedRunner", () => {
     expect(runner.isHeld("env-1")).toBe(false);
   });
 
-  test("deadline elapsed → advance with empty dispositions (fail-open per §3.2.4)", async () => {
+  test("deadline elapsed -> advance with empty dispositions (fail-open per §3.2.4)", async () => {
     let now = new Date("2026-05-08T10:00:00Z");
     const { runner, events } = makeRunner({
       stageTimeoutMs: 1_000,

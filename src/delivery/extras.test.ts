@@ -106,7 +106,7 @@ describe("retry: nextAttemptAt", () => {
   test("returns previous + jittered base", () => {
     const previous = new Date("2026-04-21T10:00:00Z");
     const next = nextAttemptAt({}, previous, 0, () => 0.5);
-    // r=0.5 → multiplier=1 → exact base interval = 60s.
+    // r=0.5 -> multiplier=1 -> exact base interval = 60s.
     expect(next.getTime() - previous.getTime()).toBe(60_000);
   });
 

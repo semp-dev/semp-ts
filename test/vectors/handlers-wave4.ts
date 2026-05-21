@@ -96,7 +96,7 @@ export function handleSenderSignature(entry: VectorEntry): void {
       if (!isRecord(doc)) {
         throw new Error(`${entry.id}: signed_enclosure_json missing`);
       }
-      // Verify with claimed (wrong) key — must fail.
+      // Verify with claimed (wrong) key -- must fail.
       const claimed = decodeHex(getString(entry.inputs, "claimed_identity_public_key_hex"));
       const claimedRes = verifySingleSignedDoc({
         signedJSON: doc,

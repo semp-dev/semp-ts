@@ -46,17 +46,17 @@ describe("HandshakeClient + HandshakeServer", () => {
       identityProofSignature: () => "PLACEHOLDER",
     });
 
-    // 1. Client INIT → Server.
+    // 1. Client INIT -> Server.
     const initBytes = client.init();
     const respBytes = server.onInit(initBytes);
 
-    // 2. Server RESPONSE → Client.
+    // 2. Server RESPONSE -> Client.
     const confirmBytes = client.onResponse(respBytes);
 
-    // 3. Client CONFIRM → Server.
+    // 3. Client CONFIRM -> Server.
     const acceptedBytes = server.onConfirm(confirmBytes);
 
-    // 4. Server ACCEPTED → Client.
+    // 4. Server ACCEPTED -> Client.
     client.onAccepted(acceptedBytes);
 
     const cs = client.session();

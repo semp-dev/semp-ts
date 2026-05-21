@@ -180,10 +180,10 @@ export class ObservationStore {
 /**
  * Default scoring curve (REPUTATION.md §4.6 + §8.3.2):
  *
- *  - abuse_rate ≥ 0.05 OR reject_rate ≥ 0.50 → hostile
- *  - abuse_rate ≥ 0.01 OR reject_rate ≥ 0.20 → suspicious
- *  - abuse_rate == 0 AND reject_rate < 0.05 AND total ≥ 100 → trusted
- *  - otherwise → neutral
+ *  - abuse_rate ≥ 0.05 OR reject_rate ≥ 0.50 -> hostile
+ *  - abuse_rate ≥ 0.01 OR reject_rate ≥ 0.20 -> suspicious
+ *  - abuse_rate == 0 AND reject_rate < 0.05 AND total ≥ 100 -> trusted
+ *  - otherwise -> neutral
  */
 export function classifyScore(s: Score): Assessment {
   const HOSTILE_ABUSE = 0.05;

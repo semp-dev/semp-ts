@@ -1,5 +1,5 @@
 /**
- * SEMP_FETCH wire shapes - the demo-only client → home-server inbox
+ * SEMP_FETCH wire shapes - the demo-only client -> home-server inbox
  * pull protocol per CLIENT.md §3.
  *
  * HANDSHAKE.md §4.6 explicitly leaves the client wakeup mechanism

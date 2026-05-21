@@ -214,10 +214,12 @@ describe("delivery.validateRecipientStatus", () => {
   });
 
   test("uses UTF-8 byte length, not character count", () => {
-    // Each "🦀" is 4 UTF-8 bytes.
-    const justUnder = "🦀".repeat(MaxStatusMessageBytes / 4);
+    // Build a 4-byte UTF-8 character at runtime (U+1D400, mathematical
+    // bold A) so the source file holds no multi-byte literals.
+    const fourByte = String.fromCodePoint(0x1d400);
+    const justUnder = fourByte.repeat(MaxStatusMessageBytes / 4);
     validateRecipientStatus({ state: "away", message: justUnder });
-    const justOver = "🦀".repeat(MaxStatusMessageBytes / 4 + 1);
+    const justOver = fourByte.repeat(MaxStatusMessageBytes / 4 + 1);
     expect(() =>
       validateRecipientStatus({ state: "away", message: justOver }),
     ).toThrow();

@@ -147,7 +147,7 @@ describe("Observation sign + verify", () => {
     expect(obs.signature.algorithm).toBe("ed25519");
     expect(obs.signature.value).not.toBe("");
     expect(verifyObservation(obs, pub)).toBe(true);
-    // Counts have been bucketed: 17 → 32, 3 → 4.
+    // Counts have been bucketed: 17 -> 32, 3 -> 4.
     expect(obs.metrics.envelopes_received).toBe(32);
     expect(obs.metrics.envelopes_rejected).toBe(4);
   });

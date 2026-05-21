@@ -6,7 +6,7 @@
  * canonicalize per ENVELOPE.md §4.3, prepend a domain-separation
  * prefix, Ed25519-verify against the pinned public key. The
  * generic `verifySingleSignedDoc` helper plus a per-category
- * picker covers ten categories at modest cost — same pattern
+ * picker covers ten categories at modest cost -- same pattern
  * semp-go landed in Wave 2A.
  *
  * Multi-signature chains (forwarding, migration) and round-trip
@@ -124,7 +124,7 @@ function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
 
 /**
  * Pull the published signed document out of `expected.<one of>`.
- * Different categories use different field names — we try the
+ * Different categories use different field names -- we try the
  * common ones in order and fail with a clear error if none match.
  */
 function signedDocFromExpected(entry: VectorEntry): Record<string, unknown> {
@@ -190,7 +190,7 @@ function canonicalIntermediateMatches(entry: VectorEntry, blanked: Uint8Array): 
 
 /**
  * Try to find a pinned ed25519 seed for the signer in `inputs`.
- * Returns undefined if none of the candidate fields are present —
+ * Returns undefined if none of the candidate fields are present --
  * the caller skips the compose-side cross-check in that case.
  */
 function seedFromInputs(entry: VectorEntry, candidates: string[]): Uint8Array | undefined {
@@ -329,8 +329,8 @@ export const handleDiscoverySigned = singleSignedDocHandler(
 // ---------------------------------------------------------------------------
 // handshake-messages: 5 entries with two shapes
 //
-//   canonical-only (init, confirm) — verify canonical bytes only
-//   signed (response, accepted, rejected) — Ed25519 over server_signature
+//   canonical-only (init, confirm) -- verify canonical bytes only
+//   signed (response, accepted, rejected) -- Ed25519 over server_signature
 //
 // session-resumption shares the same SEMP-HANDSHAKE: prefix and
 // the same field path for the signed entries; canonical-only for
@@ -741,8 +741,8 @@ function handleShamirRoundTrip(entry: VectorEntry): void {
 // first-contact-token (HANDSHAKE.md §2.2a.4)
 //
 // Two entries:
-//   first-contact-token-valid       — PoW + postmark binding both pass
-//   first-contact-token-replay-rejected — PoW still passes; postmark
+//   first-contact-token-valid       -- PoW + postmark binding both pass
+//   first-contact-token-replay-rejected -- PoW still passes; postmark
 //                                         binding fails => reject
 //
 // The PoW preimage is `prefix || nonce` (raw bytes, NOT the

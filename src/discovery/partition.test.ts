@@ -40,11 +40,11 @@ describe("defaultAlphaRanges", () => {
     ]);
   });
 
-  test("0 servers → empty", () => {
+  test("0 servers -> empty", () => {
     expect(defaultAlphaRanges(0)).toEqual([]);
   });
 
-  test("more than 26 → clamped to 26", () => {
+  test("more than 26 -> clamped to 26", () => {
     expect(defaultAlphaRanges(40)).toHaveLength(26);
   });
 });
@@ -147,7 +147,7 @@ describe("resolvePartition", () => {
       servers: 4,
       domain: "example.com",
     };
-    // SHA-256("alice@example.com").substr(0, 8) → an 8-byte BE
+    // SHA-256("alice@example.com").substr(0, 8) -> an 8-byte BE
     // unsigned int. We don't predict the exact value here; just
     // assert the resolver dispatches to whatever index it computes
     // and uses it to query SRV. To assert determinism, run twice

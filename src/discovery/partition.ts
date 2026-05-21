@@ -170,7 +170,7 @@ async function resolveAlpha(
         );
       }
     }
-    // Fallback: non-alphabetic first character → last range.
+    // Fallback: non-alphabetic first character -> last range.
     const last = config.alpha_ranges[config.alpha_ranges.length - 1]!;
     if (last.server !== undefined && last.server !== "") {
       return last.server;

@@ -2,7 +2,7 @@
  * SEMP_ABUSE_REPORT compose helpers per REPUTATION.md §3.2 / §3.5 /
  * §3.7.
  *
- * Abuse reports flow user → home-server over an authenticated
+ * Abuse reports flow user -> home-server over an authenticated
  * session - the handshake identifies the reporting user so the
  * report itself does NOT carry its own signature. The report's
  * evidence MAY include decrypted envelope fragments, in which case

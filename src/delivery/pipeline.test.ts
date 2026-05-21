@@ -228,7 +228,7 @@ describe("Pipeline", () => {
     expect(r.rejection?.reasonCode).toBe("policy_forbidden");
   });
 
-  test("per-recipient: non-local recipient → recipient_not_found", async () => {
+  test("per-recipient: non-local recipient -> recipient_not_found", async () => {
     const f = buildFixture({ briefTo: ["dave@remote.example"] });
     const pipeline = new Pipeline({
       domainKeys: async () => f.senderSigningPub,
@@ -243,7 +243,7 @@ describe("Pipeline", () => {
     expect(r.results[0]!.reason_code).toBe("recipient_not_found");
   });
 
-  test("per-recipient: blocked sender → blocked", async () => {
+  test("per-recipient: blocked sender -> blocked", async () => {
     const f = buildFixture({
       briefTo: ["bob@bob.example"],
       briefFrom: "spammer@bad.example",

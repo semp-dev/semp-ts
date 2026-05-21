@@ -48,7 +48,7 @@ import {
 // Take inputs.envelope_json, canonicalize via §4.3 elision, compare
 // to expected.canonical_utf8 byte-for-byte. semp-ts uses generic
 // canonical-JSON so empty `extensions: {}` maps and absent
-// `first_contact_token` are preserved verbatim — a divergence that
+// `first_contact_token` are preserved verbatim -- a divergence that
 // caught semp-go in Phase 1 (VR-1, VR-2).
 
 export function handleEnvelopeCanonical(entry: VectorEntry): void {
@@ -89,7 +89,7 @@ function handleSizeBucketSamples(entry: VectorEntry): void {
     const size = getInt(s, "unpadded_size_bytes");
     const wantBucketRaw = getField(s, "bucket_size_bytes");
     if (typeof wantBucketRaw !== "number") {
-      // "exceeds bucket ceiling" sentinel — selectSizeBucket throws.
+      // "exceeds bucket ceiling" sentinel -- selectSizeBucket throws.
       continue;
     }
     let got: number;
@@ -148,7 +148,7 @@ function handleDiscoveryTXT(entry: VectorEntry): void {
   }
 
   // Compare the structural fields. Sort _ignored_unknown for
-  // stability — order is implementation-defined.
+  // stability -- order is implementation-defined.
   const got: Record<string, unknown> = {};
   if (parsed.v !== undefined) {
     got.v = parsed.v;
@@ -216,7 +216,7 @@ function handleDiscoveryResponse(entry: VectorEntry): void {
 }
 
 // ---------------------------------------------------------------------------
-// rejection-codes — both samples cross-check ReasonCode.Recoverable()
+// rejection-codes -- both samples cross-check ReasonCode.Recoverable()
 
 export function handleRejectionCodes(entry: VectorEntry): void {
   const samples = entry.samples ?? [];
@@ -325,7 +325,7 @@ function layerFromString(s: string): Layer {
 }
 
 // ---------------------------------------------------------------------------
-// clock-tolerance — future-dated and expires-at samples
+// clock-tolerance -- future-dated and expires-at samples
 
 export function handleClockTolerance(entry: VectorEntry): void {
   const samples = entry.samples ?? [];
@@ -372,7 +372,7 @@ function checkOutcome(accepted: boolean, expected: string): boolean {
 // Decision-table shape validators
 //
 // session-lifecycle, delivery-status, device-certificates,
-// key-revocation, recipient-status — each ships table-shaped
+// key-revocation, recipient-status -- each ships table-shaped
 // vectors. The runner asserts samples is non-empty, every sample
 // is an object with the documented fields, and reason_code values
 // (where present) cross-check against semp-ts's ReasonCode set.
@@ -498,7 +498,7 @@ export function handleRecipientStatus(entry: VectorEntry): void {
 }
 
 // ---------------------------------------------------------------------------
-// negative-envelope-rejection — schema check (Wave 2 partial; full
+// negative-envelope-rejection -- schema check (Wave 2 partial; full
 // re-verification of seal/MAC on tampered envelopes is Wave 3).
 
 export function handleNegativeEnvelopeRejection(entry: VectorEntry): void {
@@ -515,7 +515,7 @@ export function handleNegativeEnvelopeRejection(entry: VectorEntry): void {
 }
 
 // ---------------------------------------------------------------------------
-// must-reject-index — generated cross-reference; nothing per-vector
+// must-reject-index -- generated cross-reference; nothing per-vector
 // to dispatch.
 
 export function handleMustRejectIndex(entry: VectorEntry): void {

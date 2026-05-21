@@ -60,7 +60,7 @@ describe("normalizeRecoverySecret", () => {
   });
 
   test("passphrase: NFKC normalizes compatibility forms", () => {
-    // ﬁ (U+FB01 LATIN SMALL LIGATURE FI) → "fi" under NFKC.
+    // ﬁ (U+FB01 LATIN SMALL LIGATURE FI) -> "fi" under NFKC.
     const out = normalizeRecoverySecret(
       "passphrase",
       "ﬁnal answer answer",

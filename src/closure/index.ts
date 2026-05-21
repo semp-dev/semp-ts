@@ -2,7 +2,7 @@
  * Account closure layer per CLOSURE.md.
  *
  * Wire records (request + cancel) and signing primitives, plus
- * the home-server driver that orchestrates pending → finalized
+ * the home-server driver that orchestrates pending -> finalized
  * lifecycle on a {@link ClosureStore}.
  *
  * @module
