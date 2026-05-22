@@ -11,13 +11,16 @@
  * (mixed-case domain, U-label domain, non-NFC local-part) to the
  * canonical wire form.
  *
- * IDNA2008 conversion uses Node's built-in `URL.domainToASCII` (which
- * implements WHATWG URL's IDNA, a strict superset of RFC 5891).
+ * IDNA2008 conversion uses the `tr46` package (the WHATWG/UTS #46
+ * reference implementation in pure JS). `tr46.toASCII` is byte-identical
+ * to Node's `URL.domainToASCII` and to browsers' WHATWG URL IDNA.
+ * Using `tr46` instead of `node:url` keeps the library runtime-agnostic
+ * (Node, browsers, Deno, Bun, Cloudflare Workers, React Native).
  *
  * @module
  */
 
-import { domainToASCII } from "node:url";
+import tr46 from "tr46";
 
 /** Cap on the composed `local-part@domain` per §2.3.3 / RFC 5321. */
 export const MaxAddressLength = 254;
@@ -132,7 +135,7 @@ export function canonicalizeAddress(addr: string): string {
   }
   const local = addr.slice(0, firstAt).normalize("NFC");
   const domain = addr.slice(firstAt + 1);
-  const aLabel = domainToASCII(domain);
+  const aLabel = tr46.toASCII(domain, { transitionalProcessing: false }) ?? "";
   if (aLabel === "") {
     throw new Error(`brief: domain ${JSON.stringify(domain)} cannot be converted to A-label`);
   }

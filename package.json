@@ -1,6 +1,6 @@
 {
   "name": "@sempdev/semp",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "TypeScript implementation of SEMP (Sealed Envelope Messaging Protocol).",
   "license": "MIT",
   "type": "module",
@@ -137,10 +137,12 @@
     "@noble/ciphers": "^2.0.0",
     "@noble/curves": "^2.0.0",
     "@noble/hashes": "^2.0.0",
-    "@noble/post-quantum": "^0.6.1"
+    "@noble/post-quantum": "^0.6.1",
+    "tr46": "^6.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/tr46": "^5.0.1",
     "typescript": "^5.6.0",
     "vitest": "^4.1.0"
   }
