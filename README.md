@@ -12,29 +12,44 @@ no native bindings, pure-JS, browser-compatible.
 ## Status
 
 Pre-1.0 development. Implementation tracks the [`semp-spec`](https://github.com/semp-dev/semp-spec)
-test vectors at `vectors/v1.0.0/`. Conformance is gated on the cross-language
-vectors-runner under `test/vectors/`; a build is interop-ready when the
-runner reports all vectors green.
+test vectors at `vectors/v1.0.0/`. Conformance is gated on the
+cross-language vectors-runner under `test/vectors/`; the runner
+reports all vectors green at the currently published tag.
 
-| Layer | Coverage |
-|-------|----------|
-| 1 (cryptographic primitives)   | scaffolding |
-| 2 (deterministic protocol)     | TODO        |
-| 3 (envelope round-trip)        | TODO        |
-| 4 (handshake messages)         | TODO        |
-| 5 (signed documents)           | TODO        |
+Suite coverage: baseline `x25519-chacha20-poly1305` and the
+post-quantum hybrid `pq-kyber768-x25519`.
 
 ## Repository layout
 
-Each `src/<layer>/` mirrors the corresponding semp-go package so anyone
-fluent in one can read the other.
+Each `src/<package>/` mirrors the corresponding semp-go package so
+anyone fluent in one can read the other.
 
 ```
 src/
-  crypto/   (Layer 1 primitives: HKDF, HMAC, AEAD, KEM, signatures)
-  ...       (more as layers land)
+  crypto/           HKDF, HMAC, AEAD, KEM (X25519 + Kyber768 hybrid),
+                    Ed25519 signatures
+  canonical/        canonical JSON marshaler (ENVELOPE.md §4.3)
+  keys/             Ed25519 sign/verify + SEMP fingerprint format
+  brief/            brief construction and verification
+  enclosure/        enclosure + forwarding chain
+  envelope/         envelope canonical encoding, bucket math, compose
+  seal/             per-recipient key wrap + unwrap
+  handshake/        federation + client-to-server state machines,
+                    PoW, confirmation hash, first-contact tokens
+  session/          session keys, dispatcher, resumption tickets
+  discovery/        well-known + DNS TXT discovery
+  delivery/         delivery state, sync, conflict resolution
+  largeattachment/  HKDF-Expand + ChaCha20/XChaCha20-Poly1305 chunks
+  extensions/       layered extension registry + validation
+  transparency/     STH, inclusion + consistency proofs
+  recovery/         Argon2id + XChaCha20 recovery bundles, Shamir
+  migration/        cooperative-migration signature chains
+  reputation/       reputation references + observations
+  closure/          account-closure documents
+  clockskew/        clock-tolerance tiers
+  transport/        h2 and WebSocket transports
 test/
-  vectors/  (JSON-driven cross-language vectors runner)
+  vectors/          JSON-driven cross-language vectors runner
 ```
 
 ## Development
