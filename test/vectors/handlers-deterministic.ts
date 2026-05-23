@@ -1,8 +1,6 @@
 /**
- * Wave 2 vectors-runner handlers.
- *
- * Layer 2 deterministic categories: canonical envelope, bucket
- * math, discovery TXT parsing + response parsing, extension
+ * Layer 2 deterministic-category vector handlers: canonical envelope,
+ * bucket math, discovery TXT parsing + response parsing, extension
  * validation, clock-tolerance tiers, plus the decision-table
  * categories (rejection-codes, session-lifecycle, delivery-status,
  * device-certificates, key-revocation, recipient-status) and the
@@ -49,7 +47,7 @@ import {
 // to expected.canonical_utf8 byte-for-byte. semp-ts uses generic
 // canonical-JSON so empty `extensions: {}` maps and absent
 // `first_contact_token` are preserved verbatim -- a divergence that
-// caught semp-go in Phase 1 (VR-1, VR-2).
+// caught semp-go (VR-1, VR-2).
 
 export function handleEnvelopeCanonical(entry: VectorEntry): void {
   const inputs = entry.inputs;
@@ -176,9 +174,9 @@ function handleDiscoveryResponse(entry: VectorEntry): void {
   // Walk the parsed response, assert per-address `status` matches
   // the action documented in expected.per_address_actions, confirm
   // every result has a `ttl` (§4.6 caching policy). Signature
-  // verification of discovery responses lives in discovery-signed
-  // (Wave 3); this vector pins a placeholder signature value
-  // because its purpose is parsing semantics.
+  // verification of discovery responses lives in discovery-signed;
+  // this vector pins a placeholder signature value because its
+  // purpose is parsing semantics.
   const inputs = entry.inputs;
   const expected = entry.expected;
   if (!isRecord(inputs) || !isRecord(expected)) {
@@ -498,8 +496,8 @@ export function handleRecipientStatus(entry: VectorEntry): void {
 }
 
 // ---------------------------------------------------------------------------
-// negative-envelope-rejection -- schema check (Wave 2 partial; full
-// re-verification of seal/MAC on tampered envelopes is Wave 3).
+// negative-envelope-rejection -- schema check. Full re-verification
+// of seal/MAC on tampered envelopes lives in the round-trip handlers.
 
 export function handleNegativeEnvelopeRejection(entry: VectorEntry): void {
   if (!isRecord(entry.inputs)) {
@@ -524,7 +522,7 @@ export function handleMustRejectIndex(entry: VectorEntry): void {
   }
 }
 
-// Quiet unused-import lint until the runner uses these in Wave 3.
+// Quiet unused-import lint: kept for use by helpers below.
 void bytesEqual;
 void decodeHex;
 void encodeHex;

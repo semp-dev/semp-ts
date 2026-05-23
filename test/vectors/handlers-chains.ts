@@ -1,6 +1,7 @@
 /**
- * Wave 4 vectors-runner handlers: verify-only flows that need
- * Ed25519 + the canonical marshaler but no AEAD/KEM.
+ * Multi-signature chain and Merkle-verifier vector handlers:
+ * verify-only flows that need Ed25519 + the canonical marshaler
+ * but no AEAD/KEM.
  *
  * Categories:
  *   - sender-signature  (3 entries: valid, tampered-body, wrong-key)

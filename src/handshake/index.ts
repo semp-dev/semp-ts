@@ -1,7 +1,5 @@
 /**
- * Handshake-layer primitives: PoW verification, confirmation hash,
- * and (in later waves) the canonical message bytes for init,
- * response, confirm, accepted, rejected.
+ * Handshake-layer primitives: PoW verification and confirmation hash.
  *
  * @module
  */

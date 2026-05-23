@@ -1,5 +1,5 @@
 /**
- * Wave 5 vectors-runner handlers: AEAD + KEM + KDF round-trips.
+ * AEAD + KEM + KDF round-trip vector handlers.
  *
  * Categories:
  *   - account-recovery   (1) Argon2id + XChaCha20-Poly1305 + Ed25519
@@ -128,7 +128,7 @@ function canonicalize(v: unknown): string {
 // The AAD is the canonical JSON of the item with ciphertext_hash,
 // aead_nonce, and extensions blanked. Routing through the canonical
 // marshaler (alphabetical key sort) is required for cross-language
-// interop -- semp-go's struct-order json.Marshal was VR-5 in Phase 2.
+// interop -- semp-go's struct-order json.Marshal was VR-5.
 
 export function handleLargeAttachment(entry: VectorEntry): void {
   switch (entry.id) {
@@ -578,6 +578,6 @@ function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
   return out;
 }
 
-// Quiet unused-import lint: kept for future Wave 6 dispatches.
+// Quiet unused-import lint: kept for use by helpers above.
 void hkdf;
 void sha512;

@@ -65,7 +65,7 @@ import {
   handleRecipientStatus,
   handleRejectionCodes,
   handleSessionLifecycle,
-} from "./handlers-layer2.js";
+} from "./handlers-deterministic.js";
 
 import {
   handleAccountClosure,
@@ -85,14 +85,14 @@ import {
   handleMigration,
   handleSenderSignature,
   handleTransparency,
-} from "./handlers-wave4.js";
+} from "./handlers-chains.js";
 
 import {
   handleAccountRecovery,
   handleEnvelopeRoundtrip,
   handleLargeAttachment,
   handleSealRoundtrip,
-} from "./handlers-wave5.js";
+} from "./handlers-roundtrips.js";
 
 import {
   handleAbuseReportObservation,
@@ -183,7 +183,7 @@ const dispatch: Record<string, Handler> = {
   "negative-envelope-rejection": handleNegativeEnvelopeRejection,
   "must-reject-index": handleMustRejectIndex,
 
-  // Wave 3: single-signature documents + canonical-only handshake +
+  // Single-signature documents + canonical-only handshake +
   // first-contact + Shamir + resumption KDF.
   "account-closure": handleAccountClosure,
   "configuration-update": handleConfigurationUpdate,
@@ -195,14 +195,14 @@ const dispatch: Record<string, Handler> = {
   "recovery-shamir": handleRecoveryShamir,
   "first-contact-token": handleFirstContactToken,
 
-  // Wave 4: verify-only chains + Merkle math.
+  // Verify-only chains + Merkle math.
   "sender-signature": handleSenderSignature,
   "delivery-receipt": handleDeliveryReceipt,
   forwarding: handleForwarding,
   migration: handleMigration,
   transparency: handleTransparency,
 
-  // Wave 5: AEAD + KEM + KDF round-trips.
+  // AEAD + KEM + KDF round-trips.
   "account-recovery": handleAccountRecovery,
   "large-attachment": handleLargeAttachment,
   "seal-roundtrip": handleSealRoundtrip,
@@ -218,7 +218,7 @@ const dispatch: Record<string, Handler> = {
   "publication-eligibility": handlePublicationEligibility,
 };
 
-// Suppress unused warnings until later waves reach for these.
+// Suppress unused warnings for re-exports that are not dispatched here.
 void handleDecisionTable;
 
 const dir = findVectorsDir();
@@ -463,8 +463,8 @@ function handlePoW(entry: VectorEntry): void {
   const wantLZ = getInt(expected, "leading_zero_bits");
   const hashBytes = decodeHex(wantHashHex);
   expect(leadingZeroBits(hashBytes)).toBe(wantLZ);
-  // Quiet unused-import lint if any: bytesEqual + decodeBase64 are
-  // re-exports the runner uses in later waves.
+  // Quiet unused-import lint: bytesEqual + decodeBase64 are
+  // re-exports used elsewhere.
   void bytesEqual;
   void decodeBase64;
 }

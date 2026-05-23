@@ -1,17 +1,16 @@
 /**
- * Wave 3 vectors-runner handlers: single-signature documents.
+ * Single-signature-document vector handlers.
  *
  * Every category in this file fits the same shape: take a signed
  * JSON object, blank a specific signature-value field path,
  * canonicalize per ENVELOPE.md §4.3, prepend a domain-separation
  * prefix, Ed25519-verify against the pinned public key. The
- * generic `verifySingleSignedDoc` helper plus a per-category
- * picker covers ten categories at modest cost -- same pattern
- * semp-go landed in Wave 2A.
+ * generic `verifySingleSignedDoc` helper plus a per-category picker
+ * covers ten categories at modest cost.
  *
  * Multi-signature chains (forwarding, migration) and round-trip
- * constructions (seal, envelope, large-attachment) are later
- * waves and live in their own files.
+ * constructions (seal, envelope, large-attachment) live in
+ * handlers-chains.ts and handlers-roundtrips.ts.
  *
  * @module
  */
@@ -782,8 +781,7 @@ export function handleFirstContactToken(entry: VectorEntry): void {
   }
 }
 
-// Quiet unused-import lint until later waves reach for these
-// across the file.
+// Quiet unused-import lint: kept for use by helpers below.
 void confirmationHash;
 void computeMAC;
 void getOptionalString;

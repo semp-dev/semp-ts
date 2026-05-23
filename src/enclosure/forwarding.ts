@@ -18,7 +18,7 @@
  *      over the outer enclosure. Prefix: `SEMP-ENCLOSURE-SENDER:`.
  *      Signed scope: the entire outer enclosure object.
  *
- * The verify path (handlers-wave4.ts) walks these three steps in
+ * The verify path (handlers-chains.ts) walks these three steps in
  * reverse to verify.
  *
  * @module
