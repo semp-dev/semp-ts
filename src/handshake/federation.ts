@@ -29,6 +29,7 @@ import {
   deriveSessionKeysWithResumption,
   hybridDecapsulate,
   hybridEncapsulate,
+  hybridEncapsulateWithRandomness,
   hybridGenerateKeyPair,
   newHKDFSHA512,
   x25519Agree,
@@ -834,8 +835,20 @@ export interface FederationResponderConfig {
   sessionTTL?: number;
   /** Generator for `session_id`. Required. */
   generateSessionId: () => string;
-  /** Optional pre-pinned ephemeral private (deterministic tests). */
+  /** Optional pre-pinned ephemeral private (deterministic tests; baseline suite). */
   responderEphemeralPriv?: Uint8Array;
+  /**
+   * Optional pre-pinned hybrid encapsulation randomness (deterministic
+   * tests + replay; PQ suite). Both fields are 32 bytes:
+   *   - `kyberEncapsRandomnessM`: FIPS 203 `m` for ML-KEM-768 encapsulation.
+   *   - `ephemeralX25519Priv`: X25519 ephemeral private; its pub is
+   *     concatenated after the Kyber ciphertext on the wire.
+   * Mirrors the wrap-layer pinning surface exposed by `wrapWithRandomness`.
+   */
+  responderHybridRandomness?: {
+    kyberEncapsRandomnessM: Uint8Array;
+    ephemeralX25519Priv: Uint8Array;
+  };
   /** Optional pre-pinned 32-byte responder nonce. */
   responderNonce?: Uint8Array;
 }
@@ -986,10 +999,16 @@ export class FederationResponder {
     if (isPQ) {
       if (this.cfg.responderEphemeralPriv !== undefined) {
         throw new Error(
-          "handshake: federation responder PQ ephemeral pinning not supported",
+          "handshake: federation responder PQ ephemeral pinning not supported (use responderHybridRandomness)",
         );
       }
-      const enc = hybridEncapsulate(clientEphPub);
+      const enc =
+        this.cfg.responderHybridRandomness !== undefined
+          ? hybridEncapsulateWithRandomness(
+              clientEphPub,
+              this.cfg.responderHybridRandomness,
+            )
+          : hybridEncapsulate(clientEphPub);
       respEphPub = enc.ciphertext;
       shared = enc.sharedSecret;
     } else {

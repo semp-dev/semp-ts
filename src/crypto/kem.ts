@@ -198,6 +198,59 @@ export function hybridEncapsulate(
 }
 
 /**
+ * Hybrid Encapsulate with caller-supplied randomness. Same shape as
+ * {@link hybridEncapsulate} but every entropy input is taken from the
+ * caller, so the output is byte-deterministic.
+ *
+ *   - `kyberEncapsRandomnessM`: 32-byte FIPS 203 `m` for the ML-KEM-768
+ *     encapsulation.
+ *   - `ephemeralX25519Priv`: 32-byte X25519 ephemeral private. The
+ *     corresponding pub is derived and concatenated into the wire
+ *     ciphertext after the Kyber ciphertext.
+ *
+ * Mirrors {@link "../seal".wrapWithRandomness}'s pinning surface.
+ * Used by the federation responder and the v1 client handshake server
+ * when they need to replay onInit deterministically from a stashed
+ * partial state (e.g. a Cloudflare Worker reconstructing responder
+ * state across two HTTP requests).
+ */
+export function hybridEncapsulateWithRandomness(
+  remotePub: Uint8Array,
+  randomness: { kyberEncapsRandomnessM: Uint8Array; ephemeralX25519Priv: Uint8Array },
+): { ciphertext: Uint8Array; sharedSecret: Uint8Array } {
+  if (remotePub.length !== HybridPublicKeySize) {
+    throw new Error(
+      `hybrid EncapsulateWithRandomness: remote pub ${remotePub.length} bytes, want ${HybridPublicKeySize}`,
+    );
+  }
+  if (randomness.kyberEncapsRandomnessM.length !== 32) {
+    throw new Error(
+      `hybrid EncapsulateWithRandomness: kyberEncapsRandomnessM ${randomness.kyberEncapsRandomnessM.length} bytes, want 32`,
+    );
+  }
+  if (randomness.ephemeralX25519Priv.length !== X25519Size) {
+    throw new Error(
+      `hybrid EncapsulateWithRandomness: ephemeralX25519Priv ${randomness.ephemeralX25519Priv.length} bytes, want ${X25519Size}`,
+    );
+  }
+  const kyberRemote = remotePub.slice(0, Kyber768PublicKeySize);
+  const xRemote = remotePub.slice(Kyber768PublicKeySize);
+  const xEphPub = x25519PublicKey(randomness.ephemeralX25519Priv);
+  const xSS = x25519Agree(randomness.ephemeralX25519Priv, xRemote);
+  const { cipherText: kyberCt, sharedSecret: kyberSS } = ml_kem768.encapsulate(
+    kyberRemote,
+    randomness.kyberEncapsRandomnessM,
+  );
+  const ciphertext = new Uint8Array(HybridCiphertextSize);
+  ciphertext.set(kyberCt, 0);
+  ciphertext.set(xEphPub, Kyber768CiphertextSize);
+  const sharedSecret = new Uint8Array(HybridSharedSecretSize);
+  sharedSecret.set(kyberSS, 0);
+  sharedSecret.set(xSS, Kyber768SharedKeySize);
+  return { ciphertext, sharedSecret };
+}
+
+/**
  * Hybrid Decapsulate. Reverses the responder-side encapsulation
  * (kyber half + X25519 ECDH against the sender's ephemeral pub)
  * and returns the combined shared secret `K_kyber || K_x25519`.

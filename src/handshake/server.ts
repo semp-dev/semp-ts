@@ -36,6 +36,7 @@ import {
   type SessionKeys,
   deriveSessionKeysWithResumption,
   hybridEncapsulate,
+  hybridEncapsulateWithRandomness,
   newHKDFSHA512,
   x25519Agree,
   x25519PublicKey,
@@ -149,8 +150,17 @@ export interface ServerConfig {
   resumptionTicket?: (sessionKeys: SessionKeys) => ResumptionTicket;
   /** Generator for session_id (ULID-shaped string). Required. */
   generateSessionId: () => string;
-  /** Optional bytes for the server ephemeral private key (tests). */
+  /** Optional bytes for the server ephemeral private key (tests; baseline suite). */
   serverEphemeralPriv?: Uint8Array;
+  /**
+   * Optional pre-pinned hybrid encapsulation randomness (deterministic
+   * tests + replay; PQ suite). See
+   * {@link "./federation".FederationResponderConfig.responderHybridRandomness}.
+   */
+  serverHybridRandomness?: {
+    kyberEncapsRandomnessM: Uint8Array;
+    ephemeralX25519Priv: Uint8Array;
+  };
   /** Optional 32-byte server nonce (tests). */
   serverNonce?: Uint8Array;
   /** Optional extensions echoed back on ACCEPTED. */
@@ -213,7 +223,13 @@ async function runServerInner(
   let serverEphPub: Uint8Array;
   let sharedSecret: Uint8Array;
   if (isPQ) {
-    const enc = hybridEncapsulate(clientEphPub);
+    const enc =
+      config.serverHybridRandomness !== undefined
+        ? hybridEncapsulateWithRandomness(
+            clientEphPub,
+            config.serverHybridRandomness,
+          )
+        : hybridEncapsulate(clientEphPub);
     serverEphPub = enc.ciphertext;
     sharedSecret = enc.sharedSecret;
   } else {

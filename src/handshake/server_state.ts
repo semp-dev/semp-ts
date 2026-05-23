@@ -33,6 +33,7 @@ import {
   type SessionKeys,
   deriveSessionKeysWithResumption,
   hybridEncapsulate,
+  hybridEncapsulateWithRandomness,
   newHKDFSHA512,
   x25519Agree,
   x25519PublicKey,
@@ -203,7 +204,13 @@ export class HandshakeServer {
     let serverEphPub: Uint8Array;
     let shared: Uint8Array;
     if (isPQ) {
-      const enc = hybridEncapsulate(clientEphPub);
+      const enc =
+        this.cfg.serverHybridRandomness !== undefined
+          ? hybridEncapsulateWithRandomness(
+              clientEphPub,
+              this.cfg.serverHybridRandomness,
+            )
+          : hybridEncapsulate(clientEphPub);
       serverEphPub = enc.ciphertext;
       shared = enc.sharedSecret;
     } else {

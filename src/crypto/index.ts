@@ -42,6 +42,7 @@ export {
   X25519Size,
   hybridDecapsulate,
   hybridEncapsulate,
+  hybridEncapsulateWithRandomness,
   hybridGenerateKeyPair,
   hybridPrivateKeyFromKyberAndX25519,
   kyber768Decapsulate,
