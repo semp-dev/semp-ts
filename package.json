@@ -1,6 +1,6 @@
 {
   "name": "@sempdev/semp",
-  "version": "0.5.8",
+  "version": "0.1.0-alpha.1",
   "description": "TypeScript implementation of SEMP (Sealed Envelope Messaging Protocol).",
   "license": "MIT",
   "type": "module",
