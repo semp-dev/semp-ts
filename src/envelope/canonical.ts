@@ -2,13 +2,11 @@
  * Envelope-specific canonicalization per ENVELOPE.md §4.3.
  *
  * On top of the generic canonical-JSON rules ({@link
- * "../canonical/marshal"}), envelope canonicalization applies four
+ * "../canonical/marshal"}), envelope canonicalization applies two
  * specific elisions:
  *
  *   - `seal.signature` is set to ""
  *   - `seal.session_mac` is set to ""
- *   - `postmark.hop_count` is omitted entirely
- *   - `padding` is omitted entirely
  *
  * These rules apply identically to the input of seal.signature
  * (Ed25519) and seal.session_mac (HMAC-SHA-256); both proofs cover
@@ -35,9 +33,6 @@ function envelopeElider(v: unknown): void {
   if (!isRecord(v)) {
     return;
   }
-  // Top-level: drop `padding` if present.
-  delete v.padding;
-
   const seal = v.seal;
   if (isRecord(seal)) {
     if ("signature" in seal) {
@@ -46,11 +41,6 @@ function envelopeElider(v: unknown): void {
     if ("session_mac" in seal) {
       seal.session_mac = "";
     }
-  }
-
-  const postmark = v.postmark;
-  if (isRecord(postmark)) {
-    delete postmark.hop_count;
   }
 }
 

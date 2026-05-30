@@ -13,10 +13,10 @@
  *   - Strings escaped per RFC 8259 §7.
  *   - Numbers preserved exactly (no reformatting).
  *
- * Per-document elision rules (e.g. blanking `seal.signature`,
- * omitting `postmark.hop_count` and `padding` for envelopes) are
- * applied by callers via {@link marshalWithElision} before this
- * generic marshal sees the value.
+ * Per-document elision rules (e.g. blanking `seal.signature` and
+ * `seal.session_mac` for envelopes) are applied by callers via
+ * {@link marshalWithElision} before this generic marshal sees the
+ * value.
  *
  * @module
  */
@@ -40,8 +40,8 @@ export function marshal(v: unknown): Uint8Array {
  * structures freely - the original is untouched.
  *
  * Use case: envelope canonicalization sets `seal.signature` and
- * `seal.session_mac` to "", omits `postmark.hop_count`, omits
- * `padding` - all by mutating the deep copy before serialization.
+ * `seal.session_mac` to "" by mutating the deep copy before
+ * serialization.
  */
 export function marshalWithElision(
   v: unknown,

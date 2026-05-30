@@ -43,9 +43,7 @@ import {
 const EnvelopePrefix = "SEMP-ENVELOPE:";
 
 /**
- * Postmark fields populated at compose time. `hop_count` is set by
- * relays in transit and is excluded from canonical bytes; it's
- * not on the compose surface.
+ * Postmark fields populated at compose time.
  */
 export interface PostmarkFields {
   id: string;
@@ -108,6 +106,13 @@ export interface ComposeInput {
   extensions?: Record<string, unknown>;
   /** Seal-layer extensions (default: {}). */
   sealExtensions?: Record<string, unknown>;
+  /**
+   * Opaque base64-alphabet filler for size-bucket padding (§2.4).
+   * Padding is covered by the canonical bytes, so it is fixed before
+   * signing. Defaults to the empty string; callers that pad to a size
+   * bucket compute the value (see {@link fillPadding}) and pass it here.
+   */
+  padding?: string;
 }
 
 /** Wire envelope returned by {@link compose}. */
@@ -154,8 +159,8 @@ function suiteBriefEnclosureAEAD(suite: Suite): AEADAlgorithm {
  *   4. Wrap K_enclosure to every enclosure recipient.
  *   5. Build the envelope object with seal.signature = "" and
  *      seal.session_mac = "" placeholders.
- *   6. Compute canonical bytes per §4.3 (signature + mac blanked,
- *      hop_count and padding omitted), prepend SEMP-ENVELOPE:,
+ *   6. Compute canonical bytes per §4.3 (signature + mac blanked),
+ *      prepend SEMP-ENVELOPE:,
  *      Ed25519-sign with the sender domain signing seed.
  *   7. Compute HMAC-SHA-256 over the same canonical bytes with
  *      K_env_mac.
@@ -250,6 +255,9 @@ export function compose(input: ComposeInput): Envelope {
   if (input.extensions !== undefined) {
     env.extensions = input.extensions;
   }
+  // Padding is a required envelope field (it MAY be empty) and is
+  // covered by the canonical bytes, so it must be set before signing.
+  env.padding = input.padding ?? "";
 
   // Step 6: §4.3 canonical bytes and seal.signature.
   const canonical = canonicalEnvelopeFor(env);
@@ -268,14 +276,14 @@ export function compose(input: ComposeInput): Envelope {
 
 /**
  * Compute the §4.3 canonical envelope bytes - signature and
- * session_mac blanked, hop_count and padding omitted.
+ * session_mac blanked. Every other field, including padding, is
+ * covered by the canonical bytes.
  */
 export function canonicalEnvelopeFor(envelope: unknown): Uint8Array {
   return marshalWithElision(envelope, (clone) => {
     if (!isRecord(clone)) {
       return;
     }
-    delete clone.padding;
     const seal = clone.seal;
     if (isRecord(seal)) {
       if ("signature" in seal) {
@@ -284,10 +292,6 @@ export function canonicalEnvelopeFor(envelope: unknown): Uint8Array {
       if ("session_mac" in seal) {
         seal.session_mac = "";
       }
-    }
-    const postmark = clone.postmark;
-    if (isRecord(postmark)) {
-      delete postmark.hop_count;
     }
   });
 }
