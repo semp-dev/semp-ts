@@ -12,8 +12,7 @@
  *
  *  - {@link computeEnvelopeHash}: SHA-256 over canonical envelope bytes
  *    (the same canonical form `seal.signature` is computed over -
- *    `signature` and `session_mac` blanked, `hop_count` and `padding`
- *    omitted).
+ *    `signature` and `session_mac` blanked).
  *  - {@link signDeliveryReceipt}: build + sign a receipt from
  *    pre-sign inputs.
  *  - {@link verifyDeliveryReceipt}: Ed25519-verify a receipt against
@@ -115,7 +114,7 @@ export interface SignDeliveryReceiptResult {
  * SHA-256 of canonical envelope bytes, base64-encoded, per
  * §1.1.1.3. The caller is responsible for producing the canonical
  * bytes - typically via `envelope.canonicalEnvelopeFor(env)` which
- * applies §4.3 elision (signature, session_mac, hop_count, padding).
+ * applies §4.3 elision (signature and session_mac blanked).
  */
 export function computeEnvelopeHash(canonicalEnvelopeBytes: Uint8Array): string {
   const sum = sha256(canonicalEnvelopeBytes);
